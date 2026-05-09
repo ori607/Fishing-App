@@ -1,46 +1,83 @@
 import streamlit as st
-import datetime
 
-# 1. Setup
-st.set_page_config(page_title="HV Fishing Guide", page_icon="🎣")
+# --- APP CONFIG ---
+st.set_page_config(page_title="HV Master Guide v2", page_icon="🎣")
 
-# 2. Sidebar Navigation
+# --- DATABASE: Spots with Mileage from Huntingdon Valley ---
+# Format: "Name": [Species, Distance_from_HV]
+SITES = {
+    "Pennypack Creek (Lorimer)": ["Bass", 2],
+    "Mason's Mill Pond": ["Bass", 3],
+    "Nockamixon State Park": ["Bass", 28],
+    "Wissahickon Creek": ["Trout", 12],
+    "Bushkill Creek": ["Trout", 65],
+    "Marsh Creek Lake": ["Musky", 45],
+    "Delaware River (Trenton)": ["Catfish", 18],
+    "Schuylkill (Philly)": ["Catfish", 15],
+    "Pennypack (Slow Pools)": ["Carp", 2],
+    "Cape May Surf": ["Striper", 90],
+    "Barnegat Light": ["Striper", 75],
+    "Cape May Inlet": ["Shark", 95],
+    "Offshore Reefs": ["Shark", 105],
+    "Atlantic City Piers": ["Fluke", 65],
+    "Ocean City Back Bay": ["Fluke", 70],
+    "Canyons (Deep Sea)": ["Tuna", 150]
+}
+
+# --- SIDEBAR ---
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["AI Fishing Guide", "Catch Tracker", "Learn Center"])
+page = st.sidebar.radio("Go to", ["AI Fishing Guide", "Catch Tracker"])
 
-# 3. AI Guide Page
 if page == "AI Fishing Guide":
-    st.title("🎯 Pre-Trip Planner")
+    st.title("🎯 Smart-Trip Planner")
+
+    # 1. Expanded Species
+    species = st.selectbox("Target Species:", ["Bass", "Trout", "Musky", "Carp", "Striper", "Fluke", "Shark", "Tuna", "Catfish"])
+
+    # 2. Advanced Lure Logic
+    if species in ["Bass", "Musky"]:
+        lure_options = ["Senko", "Crankbait", "Chatterbait", "Whopper Plopper", "Swim Bait"]
+    elif species in ["Striper", "Fluke", "Tuna"]:
+        lure_options = ["Bucktail", "Gulp Mullet", "Topwater Popper", "Cedar Plug"]
+    elif species == "Trout":
+        lure_options = ["Rooster Tail", "Powerbait", "Fly (Wooly Bugger)"]
+    elif species == "Shark":
+        lure_options = ["Chum/Mackerel", "Large Circle Hook with Mullet"]
+    else:
+        lure_options = ["Corn", "Nightcrawlers", "Chicken Liver"]
+
+    user_lures = st.multiselect(f"Your {species} Gear:", lure_options)
     
-    species = st.multiselect("Target Species:", ["Bass", "Carp", "Striper", "Catfish"])
-    lures = st.multiselect("Your Lures:", ["Senko", "Whopper Plopper", "Chatterbait", "Live Bait", "Crankbait"])
-    dist = st.slider("Max Travel (miles):", 0, 100, 15)
-    target_weight = st.select_slider("Target Size:", options=["Dinks", "Average", "Trophy"])
-    location = st.text_input("Specific Spot:")
+    # 3. Sliders
+    max_dist = st.slider("How far will you drive? (miles)", 5, 200, 30)
+    target_lb = st.slider(f"Target {species} Weight (lbs):", 1, 100, 5)
 
-    if st.button("Generate Master Statement"):
-        st.subheader("🔥 Your Master Plan")
-        # Safety check to make sure list isn't empty
-        spec_str = ", ".join(species) if species else "Fish"
-        lure_str = ", ".join(lures) if lures else "your best lures"
-        
-        st.success(f"Focus on the edges at {location}. Use {lure_str} to target that {target_weight} {spec_str}.")
+    if st.button("Calculate Best Spot"):
+        # --- THE "THINKING" LOGIC ---
+        # Filter spots by species AND distance
+        valid_spots = [name for name, data in SITES.items() if data[0] == species and data[1] <= max_dist]
 
-# 4. Catch Tracker Page
+        if not valid_spots:
+            st.error(f"No {species} spots found within {max_dist} miles. Try increasing your travel distance!")
+        elif not user_lures:
+            st.warning("Select your gear first!")
+        else:
+            # Pick the BEST lure based on target weight
+            selected_lure = user_lures[0] # Default to first
+            if target_lb > 10 and len(user_lures) > 1:
+                # Logic: If targeting big fish, prefer bigger lures if available
+                selected_lure = user_lures[-1] 
+            
+            best_spot = valid_spots[0] # The "Thinking" part picks the closest valid spot
+            
+            st.subheader("🔥 Your Master Plan")
+            st.success(f"**GO HERE:** {best_spot}")
+            st.write(f"This spot is within your {max_dist} mile limit and is prime for {species}.")
+            
+            # Specific Advice Logic
+            color = "Dark Green/Brown" if target_lb < 5 else "White/Silver"
+            st.info(f"**TACTIC:** Use a **{color} {selected_lure}**. Cast toward structure and retrieve slowly.")
+
 elif page == "Catch Tracker":
-    st.title("🏆 Personal Catch Log")
-    with st.form("catch_form", clear_on_submit=True):
-        fish_type = st.selectbox("Species caught", ["Bass", "Carp", "Striper", "Catfish"])
-        weight = st.number_input("Weight (lbs)", min_value=0.0)
-        submitted = st.form_submit_button("Log Catch")
-        if submitted:
-            st.write(f"Logged a {weight}lb {fish_type}!")
-
-# 5. Learn Center Page
-elif page == "Learn Center":
-    st.title("📚 Fishing Academy")
-    topic = st.selectbox("What do you want to learn?", ["Texas Rig", "Palomar Knot"])
-    if topic == "Texas Rig":
-        st.write("1. Slide weight on line.2. Tie offset hook.3. Rig worm weedless.")
-    elif topic == "Palomar Knot":
-        st.write("1. Double 6 inches of line.2. Pass loop through eye.3. Tie overhand knot.")
+    st.title("🏆 Catch Log")
+    st.write("Section under construction - Use the planner for now!")
