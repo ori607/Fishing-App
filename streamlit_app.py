@@ -48,4 +48,55 @@ with st.sidebar:
 
     with st.expander("📦 Terminal Tackle"):
         st.session_state['profile']['hooks'] = st.multiselect("Hooks:", ["Circle Hook", "EWG Worm Hook", "Treble", "Jig Head"])
-        st.session_state['profile']['weights'] = st.multiselect("
+        st.session_state['profile']['weights'] = st.multiselect("Weights:", ["1/8oz", "1/4oz", "1/2oz", "1oz+"])
+
+# --- MAIN APP ---
+page = st.radio("Navigation", ["Smart Planner", "Learn Center"], horizontal=True)
+
+if page == "Smart Planner":
+    st.title("🎯 Pro Trip Planner")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        species = st.selectbox("Target Fish", list(LIMITS.keys()))
+    with col2:
+        max_dist = st.number_input("Max Miles", value=30)
+    with col3:
+        target_lb = st.slider("Target Lbs", 1, LIMITS[species], 2)
+
+    if st.button("Generate Strategy"):
+        matches = [
+            {"name": n, "dist": d[1], "max_w": d[2], "quality": d[3], "tip": d[4]} 
+            for n, d in SITES.items() if d[0] == species and d[1] <= max_dist and d[2] >= target_lb
+        ]
+        matches = sorted(matches, key=lambda x: x['quality'], reverse=True)
+
+        if not matches:
+            st.error("No spots fit these specs. Expand your search!")
+        else:
+            for i, spot in enumerate(matches):
+                with st.container():
+                    st.markdown(f"### {i+1}. {spot['name']}")
+                    c1, c2, c3 = st.columns([1,1,2])
+                    with c1:
+                        st.metric("Dist", f"{spot['dist']}mi")
+                        st.metric("Quality", f"{spot['quality']}/10")
+                    with c2:
+                        # Logic to suggest the right lure from your locker
+                        my_lures = st.session_state['profile']['lures']
+                        rec_lure = my_lures[0] if my_lures else "Live Bait"
+                        st.write(f"**Lure:** {rec_lure}")
+                        st.write(f"**Rod:** {st.session_state['profile']['rods']}")
+                    with c3:
+                        st.info(f"**Tactic:** {spot['tip']}")
+                        if "Frog" in rec_lure:
+                            st.write("Keep your rod tip up and wait 1 second after the strike before setting the hook!")
+
+elif page == "Learn Center":
+    st.title("📖 Academy")
+    topic = st.selectbox("Choose Tutorial", ["Texas Rig", "Frog Fishing"])
+    if topic == "Texas Rig":
+        st.write("The Texas Rig is the gold standard for weedless fishing.")
+        
+    if topic == "Frog Fishing":
+        st.write("Walk the frog over heavy mats and lily pads.")
