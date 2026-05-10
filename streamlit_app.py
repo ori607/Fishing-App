@@ -1,95 +1,127 @@
 import streamlit as st
 import random
-from datetime import datetime
 
-# --- DATABASE: Spot Name: [Species, Distance, MaxWeight, Quality, Tip, CoverType, WaterType]
-# WaterType: "Fresh" or "Salt" (Crucial for Tides/SST/Chlorophyll)
+# --- 1. SETTINGS & STYLING ---
+st.set_page_config(page_title="FishAI Master", page_icon="🎣", layout="wide")
+
+# --- 2. THE DATABASE (The "Brain") ---
+# Format: "Name": [Species, Distance, MaxWeight, Quality, Tip, CoverType, WaterType]
 SITES = {
-    "Quarry Road Pond (Bryn Athyn)": ["Bass", 0.1, 6, 9, "Private feel. Focus on the steep drop-offs.", "Rocks", "Fresh"],
-    "Mason's Mill Pond": ["Bass", 3, 5, 4, "Heavy vegetation in summer.", "LilyPads", "Fresh"],
-    "Island Beach State Park": ["Striper", 82, 50, 10, "Look for 'cuts' in the sand bars.", "Open", "Salt"],
-    "Cape May Inlet": ["Shark", 95, 150, 6, "Deep water near the mouth.", "Current", "Salt"],
-    "Susquehanna River": ["Catfish", 85, 50, 10, "Heavy current; find the deep holes.", "Current", "Fresh"]
+    "Quarry Road Pond (Bryn Athyn)": ["Bass", 0.1, 6, 10, "Focus on the steep drop-offs near the rocks.", "Rocks", "Fresh"],
+    "Mason's Mill Pond": ["Bass", 3, 5, 4, "Heavy vegetation. Use weedless gear.", "LilyPads", "Fresh"],
+    "Oreland Quarry (Sandy Run)": ["Bass", 8, 8, 9, "Deep clear water. Big fish hold deep.", "Open", "Fresh"],
+    "Pennypack (Lorimer)": ["Bass", 2, 4, 3, "Fish the eddies behind large stones.", "Current", "Fresh"],
+    "Island Beach State Park": ["Striper", 82, 50, 10, "Target the 'sloughs' between sandbars.", "Open", "Salt"],
+    "Cape May Inlet": ["Shark", 95, 150, 7, "Heavy current. Use wire leaders.", "Current", "Salt"]
 }
 
+LIMITS = {"Bass": 12, "Striper": 70, "Shark": 1000, "Catfish": 60}
+
+# --- 3. PERSISTENT PROFILE (The Sidebar Locker) ---
 if 'profile' not in st.session_state:
-    st.session_state['profile'] = {'lures': [], 'rod_type': "Medium", 'line_type': "12lb Mono"}
+    st.session_state['profile'] = {
+        'lures': ["Senko"], 
+        'rod_type': "7'0\" Medium", 
+        'line_type': "12lb Mono"
+    }
 
-# --- MAIN NAVIGATION ---
-st.title("🎣 FishAI: Tactical Command")
-menu = st.tabs(["Strategy Planner", "Advanced Trip Analysis", "Learn Center"])
+with st.sidebar:
+    st.header("👤 My Gear Locker")
+    st.session_state['profile']['lures'] = st.multiselect(
+        "Lures You Own:", 
+        ["Senko", "Frog", "Crankbait", "Chatterbait", "Jig", "Bucktail", "Topwater Popper"],
+        default=st.session_state['profile']['lures']
+    )
+    st.session_state['profile']['rod_type'] = st.text_input("Rod Type:", value=st.session_state['profile']['rod_type'])
+    st.session_state['profile']['line_type'] = st.text_input("Line Type:", value=st.session_state['profile']['line_type'])
+    st.info("Gear saved! Use the tabs to plan.")
 
-# --- TAB 1: STRATEGY PLANNER ---
-with menu[0]:
-    species = st.selectbox("Target Fish", ["Bass", "Striper", "Shark", "Catfish"])
-    max_dist = st.number_input("Max Miles", value=50)
-    target_lb = st.slider("Target Weight", 1, 100, 5)
+# --- 4. MAIN INTERFACE ---
+tabs = st.tabs(["🎯 Strategy Planner", "📊 Advanced Tactical Analysis", "📚 Learn Center"])
+
+# --- TAB: STRATEGY PLANNER ---
+with tabs[0]:
+    st.title("Top Local Spots")
+    c1, c2 = st.columns(2)
+    with c1:
+        species = st.selectbox("Target Species", list(LIMITS.keys()))
+        max_dist = st.number_input("Max Drive (Miles)", value=15)
+    with c2:
+        # This is the "Strict" slider you wanted back
+        target_lb = st.slider(f"Target {species} Weight (lbs)", 1, LIMITS[species], 2)
+
+    # Filtering Logic (Weight + Distance)
+    matches = [
+        {"name": n, "dist": d[1], "max_w": d[2], "quality": d[3], "tip": d[4], "cover": d[5]} 
+        for n, d in SITES.items() if d[0] == species and d[1] <= max_dist and d[2] >= target_lb
+    ]
     
-    matches = [n for n, d in SITES.items() if d[0] == species and d[1] <= max_dist and d[2] >= target_lb]
-    
-    if matches:
-        selected_spot = st.selectbox("Select Location for Tactical Analysis:", matches)
-        st.success(f"Selected: {selected_spot}")
+    # Sorting by Quality so Oreland/Quarry Rd come first
+    matches = sorted(matches, key=lambda x: x['quality'], reverse=True)
+
+    if not matches:
+        st.error("No spots found. Increase your distance or lower the weight target.")
     else:
-        st.error("No spots match. Adjust distance/weight.")
-        selected_spot = None
+        # We store the #1 choice in session state so the "Tactical" tab knows what to analyze
+        st.session_state['selected_spot'] = matches[0]['name']
+        
+        for i, spot in enumerate(matches):
+            rank = "🥇" if i == 0 else "🥈" if i == 1 else "🥉"
+            with st.container():
+                st.subheader(f"{rank} {spot['name']}")
+                col_a, col_b, col_c = st.columns([1,1,2])
+                with col_a:
+                    st.metric("Distance", f"{spot['dist']}mi")
+                with col_b:
+                    st.metric("Potential", f"{spot['max_w']}lb")
+                with col_c:
+                    st.write(f"**Pro Tip:** {spot['tip']}")
+                    st.caption(f"Cover Type: {spot['cover']}")
+                st.divider()
 
-# --- TAB 2: ADVANCED TRIP ANALYSIS ---
-with menu[1]:
-    if not selected_spot:
-        st.warning("Please select a location in the Strategy Planner first!")
+# --- TAB: ADVANCED TACTICAL ANALYSIS ---
+with tabs[1]:
+    if 'selected_spot' not in st.session_state:
+        st.warning("Select a spot in the Strategy Planner first.")
     else:
-        st.header(f"📊 Tactical Briefing: {selected_spot}")
+        spot_name = st.session_state['selected_spot']
+        st.header(f"Tactical Briefing: {spot_name}")
         
-        # Simulate Environmental Data Fetch
-        water_type = SITES[selected_spot][6]
+        # Pull data for the logic
+        spot_data = SITES[spot_name]
+        cover = spot_data[5]
+        water_type = spot_data[6]
         
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Moon Phase", "Waxing Gibbous", "High Activity")
-            st.metric("SST (Water Temp)", "64.2°F", "+1.2°")
-        with col2:
-            st.metric("Chlorophyll-a", "2.1 mg/m³", "Bait Present")
-            st.metric("Barometer", "30.01 inHg", "Steady")
-        with col3:
-            st.metric("Tide/Current", "Incoming", "Peak Flow")
-            st.metric("Bite Score", "88/100", "Excellent")
+        # Env Metrics
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Moon Phase", "New Moon", "High Feeding")
+        m2.metric("Water Clarity", "High (Quarry)" if "Quarry" in spot_name else "Medium")
+        m3.metric("Bite Score", "92/100")
 
-        st.subheader("⏰ Optimal Feeding Windows")
-        st.write("Based on bathymetry and the lunar cycle, your best windows are:")
-        st.info("**Major Window:** 5:45 PM – 7:15 PM (Sunset/Tide Overlap) \n\n **Minor Window:** 6:15 AM – 7:30 AM")
-
-        # --- SMART LURE ORDERING ---
-        st.subheader("🎒 Gear Priority (Best to Worst)")
+        # SMART LURE RANKING (Logic based on cover)
+        st.subheader("🎒 Recommended Lure Order")
         user_lures = st.session_state['profile']['lures']
         
         if not user_lures:
-            st.warning("Update your Gear Locker in the sidebar to see ranked lures.")
+            st.warning("Add lures to your Gear Locker in the sidebar!")
         else:
-            # Logic: If Saltwater + High Chlorophyll, prioritize vibration/flash
-            # If Fresh + Lilypads, prioritize weedless
-            cover = SITES[selected_spot][5]
-            
-            ranked_lures = []
+            # Logic: If LilyPads, Frog is #1. If Rocks, Senko/Jig is #1.
             if cover == "LilyPads":
-                # Move Frogs and Senkos to top
-                ranked_lures = sorted(user_lures, key=lambda x: x in ["Frog", "Senko"], reverse=True)
-            elif water_type == "Salt":
-                # Move Bucktails and Poppers to top
-                ranked_lures = sorted(user_lures, key=lambda x: x in ["Bucktail", "Popper"], reverse=True)
+                ranked = sorted(user_lures, key=lambda x: x == "Frog", reverse=True)
+            elif cover == "Rocks":
+                ranked = sorted(user_lures, key=lambda x: x in ["Senko", "Jig"], reverse=True)
             else:
-                ranked_lures = user_lures # Default
+                ranked = user_lures
             
-            for i, lure in enumerate(ranked_lures):
-                st.write(f"{i+1}. **{lure}**" + (" - *Top Choice for this cover!*" if i == 0 else ""))
+            for i, lure in enumerate(ranked):
+                st.write(f"{i+1}. **{lure}**" + (" (Recommended for this terrain)" if i == 0 else ""))
 
-# --- TAB 3: LEARN CENTER ---
-with menu[2]:
-    st.header("🔬 The Science of Fishing")
-    topic = st.selectbox("Advanced Topic", ["Understanding Bathymetry", "The Chlorophyll Connection"])
-    
-    if topic == "Understanding Bathymetry":
-        st.write("Bathymetry is the study of underwater depth. Fish use 'contour lines' like highways.")
-        
-    elif topic == "The Chlorophyll Connection":
-        st.write("Higher Chlorophyll-a levels indicate more plankton, which draws in baitfish (bait balls).")
+# --- TAB: LEARN CENTER ---
+with tabs[2]:
+    st.header("Fishing Academy")
+    topic = st.selectbox("Topic", ["Texas Rig (Weedless)", "Bathymetry"])
+    if topic == "Texas Rig (Weedless)":
+        st.write("Essential for the Lily Pads at Mason's Mill or the rocks at the Quarry.")
+        st.image("https://upload.wikimedia.org/wikipedia/commons/e/e4/Texas_rig.png", width=300)
+    else:
+        st.write("Bathymetry maps show you where the deep drop-offs are.")
