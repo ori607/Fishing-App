@@ -150,5 +150,3 @@ with tabs[2]:
         st.write("Rigging your soft plastics 'weedless' is essential for heavy cover.")
         st.image("https://upload.wikimedia.org/wikipedia/commons/e/e4/Texas_rig.png", width=300)
         
-
-[Image of a Texas rig setup]
