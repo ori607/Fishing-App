@@ -5,19 +5,27 @@ from datetime import datetime
 st.set_page_config(page_title="FishAI Master", page_icon="🎣", layout="wide")
 
 # --- 2. THE DATABASE ---
-SITES = {
-    "Quarry Road Pond (Bryn Athyn)": ["Bass", 0.1, 6, 10, "Focus on steep drop-offs.", "Rocks", "Fresh"],
-    "Mason's Mill Pond": ["Bass", 3, 5, 4, "Heavy vegetation. Use weedless gear.", "LilyPads", "Fresh"],
-    "Oreland Quarry (Sandy Run)": ["Bass", 8, 8, 9, "Deep clear water. Big fish hold deep.", "Open", "Fresh"],
-    "Pennypack (Lorimer)": ["Bass", 2, 4, 3, "Fish the eddies behind large stones.", "Current", "Fresh"],
-    "Island Beach State Park": ["Striper", 82, 50, 10, "Target the 'sloughs'.", "Open", "Salt"],
-    "Cape May Inlet": ["Shark", 95, 150, 7, "Heavy current. Use wire leaders.", "Current", "Salt"]
-}
-LIMITS = {"Bass": 12, "Striper": 70, "Shark": 1000, "Catfish": 60}
+# Expanded species for the search bar
+SPECIES_LIST = [
+    "Largemouth Bass", "Smallmouth Bass", "Striped Bass (Striper)", "Black Sea Bass", 
+    "Rainbow Trout", "Brown Trout", "Brook Trout", "Channel Catfish", "Blue Catfish", 
+    "Flathead Catfish", "Common Carp", "Mirror Carp", "Bull Shark", "Sandbar Shark", "Fluke (Summer Flounder)"
+]
 
-# --- 3. PERSISTENT PROFILE ---
+SITES = {
+    "Quarry Road Pond (Bryn Athyn)": ["Largemouth Bass", 0.1, 6, 10, "Focus on steep drop-offs.", "Rocks", "Fresh"],
+    "Mason's Mill Pond": ["Largemouth Bass", 3, 5, 4, "Heavy vegetation. Use weedless gear.", "LilyPads", "Fresh"],
+    "Oreland Quarry (Sandy Run)": ["Largemouth Bass", 8, 8, 9, "Deep clear water. Big fish hold deep.", "Open", "Fresh"],
+    "Pennypack (Lorimer)": ["Smallmouth Bass", 2, 4, 3, "Fish the eddies behind stones.", "Current", "Fresh"],
+    "Island Beach State Park": ["Striped Bass (Striper)", 82, 50, 10, "Target the 'sloughs'.", "Open", "Salt"],
+    "Cape May Inlet": ["Bull Shark", 95, 150, 7, "Heavy current. Use wire leaders.", "Current", "Salt"]
+}
+
+LIMITS = {s: 1000 if "Shark" in s else 70 if "Striped" in s else 12 for s in SPECIES_LIST}
+
+# --- 3. PERSISTENT PROFILE (Simplified) ---
 if 'profile' not in st.session_state:
-    st.session_state['profile'] = {'lures': ["Senko"], 'rod_type': "7'0\" Medium", 'line_type': "12lb Mono"}
+    st.session_state['profile'] = {'lures': ["Senko"]}
 
 with st.sidebar:
     st.header("👤 My Gear Locker")
@@ -26,8 +34,7 @@ with st.sidebar:
         ["Senko", "Frog", "Crankbait", "Chatterbait", "Jig", "Bucktail", "Whopper Plopper"],
         default=st.session_state['profile']['lures']
     )
-    st.session_state['profile']['rod_type'] = st.text_input("Rod Type:", value=st.session_state['profile']['rod_type'])
-    st.session_state['profile']['line_type'] = st.text_input("Line Type:", value=st.session_state['profile']['line_type'])
+    # Rod and Line inputs removed as requested
 
 # --- 4. MAIN INTERFACE ---
 tabs = st.tabs(["🎯 Strategy Planner", "📊 Advanced Tactical Analysis", "📚 Learn Center"])
@@ -35,25 +42,24 @@ tabs = st.tabs(["🎯 Strategy Planner", "📊 Advanced Tactical Analysis", "�
 # --- TAB: STRATEGY PLANNER ---
 with tabs[0]:
     st.title("Top Local Spots")
-    c1, c2 = st.columns(2)
+    c1, col_dist, c2 = st.columns([2, 1, 1])
     with c1:
-        species = st.selectbox("Target Species", list(LIMITS.keys()))
-        max_dist = st.number_input("Max Drive (Miles)", value=15)
+        # FIX #1: Searchable Species Selection
+        species = st.selectbox("Search for a species (e.g., 'Bass'):", SPECIES_LIST)
+    with col_dist:
+        max_dist = st.number_input("Max Miles", value=15)
     with c2:
-        target_lb = st.slider(f"Target {species} Weight (lbs)", 1, LIMITS[species], 2)
+        target_lb = st.slider(f"Target Weight (lbs)", 1, LIMITS.get(species, 20), 2)
 
-    # FILTERING LOGIC
     matches = [
         {"name": n, "dist": d[1], "max_w": d[2], "quality": d[3], "tip": d[4]} 
         for n, d in SITES.items() if d[0] == species and d[1] <= max_dist and d[2] >= target_lb
     ]
     matches = sorted(matches, key=lambda x: x['quality'], reverse=True)
-    
-    # Store these matches in session state for the Advanced Tab
     st.session_state['filtered_spots'] = [m['name'] for m in matches]
 
     if not matches:
-        st.error("No matches found. Adjust distance or weight.")
+        st.error(f"No {species} spots found matching your criteria. Try expanding distance.")
     else:
         for i, spot in enumerate(matches):
             rank = "🥇" if i == 0 else "🥈" if i == 1 else "🥉"
@@ -67,54 +73,47 @@ with tabs[0]:
 
 # --- TAB: ADVANCED TACTICAL ANALYSIS ---
 with tabs[1]:
-    # FIX #1: Only allow selection of "Top Local Spots"
     available_spots = st.session_state.get('filtered_spots', [])
     
     if not available_spots:
         st.warning("Please find spots in the Strategy Planner first!")
     else:
         st.header("📍 Trip Tactical Analysis")
-        selected_spot = st.selectbox("Choose a spot from your filtered list:", available_spots)
+        selected_spot = st.selectbox("Confirm location:", available_spots)
         
-        # Environmental Data Header
         now = datetime.now().strftime("%Y-%m-%d %I:%M %p")
-        st.caption(f"Live data for {selected_spot} as of: **{now}**")
+        st.caption(f"Data for {selected_spot} as of: **{now}**")
         st.markdown("# Bite Score: 92/100")
         
-        # Environmental Factors (Smaller font)
-        f1, f2, f3, f4, f5 = st.columns(5)
-        f1.caption("**Moon:** Waning Crescent")
-        f2.caption("**Clarity:** High")
-        f3.caption("**SST:** 63°F")
-        f4.caption("**Chlorophyll:** 2.1mg/m³")
-        f5.caption("**Pressure:** 30.01inHg")
+        # FIX #2: Suggested Rod and Line (Automated Logic)
+        st.subheader("⚙️ Recommended Setup")
+        if target_lb <= 3:
+            rec_rod, rec_line = "6'6\" Ultralight Power", "6lb Monofilament"
+        elif target_lb <= 10:
+            rec_rod, rec_line = "7'0\" Medium Power / Fast Action", "12lb Fluorocarbon"
+        else:
+            rec_rod, rec_line = "7'6\" Heavy Power", "30lb-50lb Braided Line"
+            
+        r1, r2 = st.columns(2)
+        r1.info(f"**Rod:** {rec_rod}")
+        r2.info(f"**Line:** {rec_line}")
 
         st.divider()
 
-        # FIX #2: Best Times Selection
         st.subheader("⏰ Optimal Trip Timing")
-        time_choice = st.radio("When are you planning to go?", ["6am-10am", "10am-4pm", "4pm-8pm"])
+        time_choice = st.radio("Trip Window:", ["6am-10am", "10am-4pm", "4pm-8pm"])
         
-        # Timing Logic Engine
         if time_choice == "6am-10am":
-            best_time = "6:15am - 7:45am"
-            reason = "High activity during the 'Morning Sunrise' window as water warms."
+            st.success("**Best Slot:** 6:15am - 7:45am")
         elif time_choice == "10am-4pm":
-            best_time = "11:30am - 12:45pm"
-            reason = "Fish move to deeper structure; focus on shaded drop-offs."
-        else: # 4pm-8pm
-            best_time = "6:30pm - 7:50pm"
-            reason = "Peak sunset feeding window. Fish move to shallow cover."
-
-        st.success(f"**Best Slot for your choice:** {best_time}")
-        st.info(f"**Why:** {reason}")
+            st.success("**Best Slot:** 11:30am - 12:45pm")
+        else:
+            st.success("**Best Slot:** 6:30pm - 7:50pm")
         
-        # Suggest overall best time
-        st.markdown(f"🏆 **Overall Best Time Today:** 6:45 PM (Sunset/Lunar overlap)")
+        st.markdown(f"🏆 **Overall Best Time Today:** 6:45 PM")
 
         st.divider()
         
-        # Lure Recommendations (Locker vs Pro)
         col_left, col_right = st.columns(2)
         cover = SITES[selected_spot][5]
         user_lures = st.session_state['profile']['lures']
@@ -123,23 +122,23 @@ with tabs[1]:
             st.subheader("🎒 From Your Locker")
             if user_lures:
                 if cover == "LilyPads" and "Frog" in user_lures:
-                    st.write("**Primary Choice:** 1/2oz White Hollow Body Frog")
+                    st.write("**Choice:** 1/2oz White Hollow Body Frog")
                     
                 elif cover == "Rocks" and "Jig" in user_lures:
-                    st.write("**Primary Choice:** 3/8oz Black/Blue Football Jig")
+                    st.write("**Choice:** 3/8oz Black/Blue Football Jig")
                     
                 else:
-                    st.write("**Primary Choice:** 5-inch Dark Green Pumpkin Senko")
+                    st.write("**Choice:** 5-inch Dark Green Pumpkin Senko")
                     st.image("https://images.tacklewarehouse.com/fishing/Gary_Yamamoto_Senko.jpg", width=250)
             else:
-                st.write("Add gear in the sidebar.")
+                st.write("Locker is empty.")
 
         with col_right:
             st.subheader("🎣 Pro Suggestion")
             if cover == "Rocks":
                 st.write("**Expert Setup:** 3/4oz Tungsten Jig - Blue Craw")
             elif cover == "LilyPads":
-                st.write("**Expert Setup:** 5/8oz Leopard Frog - Yellow Belly")
+                st.write("**Expert Setup:** 5/8oz Leopard Frog")
             else:
                 st.write("**Expert Setup:** 1/4oz White Whopper Plopper")
 
@@ -148,4 +147,8 @@ with tabs[2]:
     st.header("Fishing Academy")
     topic = st.selectbox("Topic", ["Texas Rig", "Bathymetry"])
     if topic == "Texas Rig":
+        st.write("Rigging your soft plastics 'weedless' is essential for heavy cover.")
         st.image("https://upload.wikimedia.org/wikipedia/commons/e/e4/Texas_rig.png", width=300)
+        
+
+[Image of a Texas rig setup]
