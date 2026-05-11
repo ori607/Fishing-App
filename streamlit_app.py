@@ -10,7 +10,7 @@ import os
 # --- 1. SETTINGS & MOBILE STYLING ---
 st.set_page_config(page_title="FishAI Mobile Pro", page_icon="🎣", layout="wide")
 
-# Custom CSS to fix mobile spacing and card styling
+# FIX: Changed unsafe_content_label to unsafe_allow_html
 st.markdown("""
     <style>
     .tactical-card {
@@ -28,7 +28,7 @@ st.markdown("""
         padding-right: 10px;
     }
     </style>
-    """, unsafe_content_label=True)
+    """, unsafe_allow_html=True)
 
 # --- 2. THE MASTER DATABASE ---
 SITES = {
@@ -82,8 +82,10 @@ if 'lures_owned' not in st.session_state: st.session_state['lures_owned'] = []
 
 DB_FILE = "catches_db.json"
 if os.path.exists(DB_FILE):
-    with open(DB_FILE, "r") as f:
-        st.session_state['my_catches'] = json.load(f)
+    try:
+        with open(DB_FILE, "r") as f:
+            st.session_state['my_catches'] = json.load(f)
+    except: st.session_state['my_catches'] = []
 
 def save_catches():
     with open(DB_FILE, "w") as f:
@@ -111,7 +113,7 @@ with st.sidebar:
 # --- 6. MAIN TABS ---
 tabs = st.tabs(["🎯 Strategy", "📊 Analysis", "📸 Log", "📚 Learn"])
 
-# --- TAB 1: STRATEGY (Fixed Map) ---
+# --- TAB 1: STRATEGY ---
 with tabs[0]:
     st.title("Target Acquisition")
     spec_search = st.selectbox("Search Species:", [None] + ALL_SPECIES)
@@ -134,10 +136,9 @@ with tabs[0]:
                 map_points.append({"lat": d[1], "lon": d[2], "name": name, "color": [40, 200, 100, 255], "radius": 100})
 
         if matches:
-            # Fixed Mobile Map rendering
             st.pydeck_chart(pdk.Deck(
                 map_style='mapbox://styles/mapbox/satellite-streets-v11',
-                initial_view_state=pdk.ViewState(latitude=u_lat, longitude=u_lon, zoom=11, pitch=0), # Pitch 0 is better for mobile
+                initial_view_state=pdk.ViewState(latitude=u_lat, longitude=u_lon, zoom=11, pitch=0),
                 layers=[pdk.Layer('ScatterplotLayer', data=pd.DataFrame(map_points), get_position='[lon, lat]', get_color='color', get_radius=200, pickable=True)],
                 tooltip={"text": "{name}"}
             ), use_container_width=True)
@@ -151,7 +152,7 @@ with tabs[0]:
                         st.session_state['target_w'] = t_w
                         st.rerun()
 
-# --- TAB 2: ADVANCED ANALYSIS (Clean Design) ---
+# --- TAB 2: ADVANCED ANALYSIS ---
 with tabs[1]:
     if not st.session_state['locked_spot']:
         st.warning("Lock a location first!")
@@ -170,7 +171,6 @@ with tabs[1]:
             score = 65 + sol_pts + (10 if pres < 30.00 else 0)
             st.markdown(f"### Bite Score: {min(score, 100)}/100")
             
-            # Mobile Metrics
             m1, m2 = st.columns(2)
             m1.metric("Temp", f"{temp}°F")
             m2.metric("Pres", f"{pres} inHg")
@@ -188,19 +188,18 @@ with tabs[1]:
         elif "Striped" in t_s or t_w > 30: r, l = "Heavy Action", "65lb Braid"
         else: r, l = "Med-Heavy", "15lb Flouro"
         
-        # Redesigned Gear Layout
         st.markdown(f"""
         <div class="tactical-card">
             <p><b>🎣 Rod:</b> {r}</p>
             <p><b>🧶 Line:</b> {l}</p>
         </div>
-        """, unsafe_content_label=True)
+        """, unsafe_allow_html=True)
         
         st.markdown(f"""
         <div class="tactical-card" style="border-left-color: #28a745;">
             <p><b>💼 Pro Pick:</b> 3/8oz Chatterbait (Chartreuse)</p>
         </div>
-        """, unsafe_content_label=True)
+        """, unsafe_allow_html=True)
 
 # --- TAB 3: CATCH JOURNAL ---
 with tabs[2]:
@@ -229,3 +228,4 @@ with tabs[3]:
     if topic == "Texas Rig":
         st.image("https://upload.wikimedia.org/wikipedia/commons/e/e4/Texas_rig.png", width=400)
         st.caption("Weedless setup for heavy cover.")
+
