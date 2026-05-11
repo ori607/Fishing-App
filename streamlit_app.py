@@ -18,24 +18,29 @@ st.set_page_config(
 )
 
 # =========================================================
-# TACTICAL UI STYLING
+# IMPROVED MODERN UI STYLING
 # =========================================================
 
 st.markdown("""
 <style>
 
 /* GLOBAL */
+
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
 
+/* SOFTER DARK THEME */
+
 .main {
-    background: linear-gradient(to bottom right, #0f172a, #111827);
-    color: white;
+    background: linear-gradient(to bottom right, #dbe4ee, #b8c7d9);
+    color: #0f172a;
 }
 
+/* FIX CUT OFF TABS */
+
 .block-container {
-    padding-top: 1.5rem;
+    padding-top: 0.5rem;
     padding-bottom: 2rem;
     max-width: 1500px;
 }
@@ -43,29 +48,33 @@ html, body, [class*="css"] {
 /* HEADINGS */
 
 h1, h2, h3 {
-    color: white;
+    color: #0f172a;
     letter-spacing: -0.03em;
+    font-weight: 800;
 }
 
 /* SIDEBAR */
 
 section[data-testid="stSidebar"] {
-    background: #0b1220;
-    border-right: 1px solid #1e293b;
+    background: #d7e1ec;
+    border-right: 1px solid #94a3b8;
 }
 
 /* TABS */
 
 .stTabs [data-baseweb="tab-list"] {
     gap: 12px;
+    padding-top: 10px;
+    overflow-x: auto;
 }
 
 .stTabs [data-baseweb="tab"] {
-    background: #1e293b;
+    background: #94a3b8;
     border-radius: 12px;
-    padding: 10px 20px;
+    padding: 12px 24px;
     color: white;
     font-weight: 700;
+    height: auto;
 }
 
 .stTabs [aria-selected="true"] {
@@ -75,16 +84,16 @@ section[data-testid="stSidebar"] {
 /* METRIC CARDS */
 
 .metric-card {
-    background: linear-gradient(145deg, #1e293b, #111827);
+    background: linear-gradient(145deg, #f8fafc, #dbe4ee);
     border-radius: 18px;
     padding: 18px;
-    border: 1px solid #334155;
+    border: 1px solid #94a3b8;
     margin-bottom: 15px;
-    box-shadow: 0px 6px 18px rgba(0,0,0,0.35);
+    box-shadow: 0px 6px 18px rgba(0,0,0,0.12);
 }
 
 .metric-label {
-    color: #94a3b8;
+    color: #475569;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -92,7 +101,7 @@ section[data-testid="stSidebar"] {
 }
 
 .metric-value {
-    color: white;
+    color: #0f172a;
     font-size: 1.4rem;
     font-weight: 800;
     margin-top: 6px;
@@ -101,14 +110,14 @@ section[data-testid="stSidebar"] {
 /* GEAR ITEMS */
 
 .gear-item {
-    background: #1e293b;
+    background: #e2e8f0;
     padding: 8px 16px;
     border-radius: 999px;
     display: inline-block;
     margin: 6px;
-    color: white;
-    border: 1px solid #334155;
-    font-weight: 600;
+    color: #0f172a;
+    border: 1px solid #94a3b8;
+    font-weight: 700;
 }
 
 /* MAP */
@@ -121,7 +130,7 @@ iframe {
 /* EXPANDERS */
 
 .streamlit-expanderHeader {
-    background-color: #1e293b;
+    background-color: #dbe4ee;
     border-radius: 12px;
 }
 
@@ -145,28 +154,35 @@ iframe {
 
 .stTextInput input,
 .stNumberInput input,
-.stSelectbox div {
-    background-color: #111827 !important;
-    color: white !important;
+.stSelectbox div,
+.stMultiSelect div {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
     border-radius: 10px !important;
+}
+
+/* SLIDERS */
+
+.stSlider {
+    padding-top: 1rem;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # =========================================================
-# DATABASE
+# UPDATED DATABASE
 # =========================================================
 
 SITES = {
-    "Albidale Park (Lower Moreland)": ["Largemouth Bass", 40.1238, -75.0532, "LilyPads", "Fresh", "Enter via Warfield Dr; focus on the northwest bank.", 8],
+    "Albidale Park Pond": ["Largemouth Bass", 40.1277, -75.0467, "LilyPads", "Fresh", "Shallow weed edges near the walking trail produce best at sunrise.", 8],
     "Quarry Pond (Cathedral Rd Area)": ["Largemouth Bass", 40.1385, -75.0598, "Rocks", "Fresh", "Deep clear water; use natural colors.", 10],
     "Mason's Mill Pond": ["Largemouth Bass", 40.1512, -75.0705, "LilyPads", "Fresh", "Heavy surface matted vegetation.", 6],
-    "Lorimer Park (Pennypack)": ["Smallmouth Bass", 40.0988, -75.0612, "Current", "Fresh", "Target the deep holes below the bridge.", 5],
+    "Lorimer Park (Pennypack)": ["Smallmouth Bass", 40.0988, -75.0612, "Current", "Fresh", "Target deep current seams below bridge sections.", 5],
     "Neshaminy Creek (Tyler)": ["Smallmouth Bass", 40.2115, -74.9618, "Rocks", "Fresh", "Fast water near the dam.", 5],
-    "Island Beach State Park": ["Striped Bass", 39.8850, -74.0850, "Open", "Salt", "Find the deeper sloughs at low tide.", 65],
-    "Barnegat Inlet": ["Striped Bass", 39.7595, -74.1008, "Rocks", "Salt", "Heavy current; fish the slack tide.", 60],
-    "Cape May Inlet": ["Bull Shark", 38.9345, -74.9015, "Current", "Salt", "Heaviest tackle required; use wire.", 450],
+    "Island Beach State Park": ["Striped Bass", 39.8850, -74.0850, "Open", "Salt", "Find deeper sloughs at low tide.", 65],
+    "Barnegat Inlet": ["Striped Bass", 39.7595, -74.1008, "Rocks", "Salt", "Heavy current; fish slack tide.", 60],
+    "Cape May Inlet": ["Bull Shark", 38.9345, -74.9015, "Current", "Salt", "Heavy tackle required; use wire leader.", 450],
     "Wissahickon (Valley Green)": ["Rainbow Trout", 40.0525, -75.2155, "Current", "Fresh", "Stocked pools near the inn.", 4]
 }
 
@@ -179,20 +195,57 @@ ALL_SPECIES = sorted([
     "Bluefish",
     "Catfish",
     "Musky",
-    "Walleye"
+    "Walleye",
+    "Northern Pike",
+    "Crappie",
+    "Perch",
+    "Snakehead",
+    "Carp",
+    "Tuna",
+    "Mahi Mahi",
+    "Flounder",
+    "Red Drum",
+    "Black Drum",
+    "Bluegill",
+    "Salmon",
+    "Trout",
+    "Tarpon"
 ])
 
-ALL_LURES = sorted([
-    "Senko (Green Pumpkin)",
-    "Hollow Body Frog",
-    "Chatterbait Jackhammer",
-    "Ned Rig",
-    "Whopper Plopper",
-    "Keitech Swimbait",
-    "Bucktail Jig",
-    "Squarebill",
-    "Jerkbait"
-])
+LURE_CATEGORIES = {
+    "Bass Gear": [
+        "Senko",
+        "Frog",
+        "Chatterbait",
+        "Spinnerbait",
+        "Jerkbait",
+        "Squarebill",
+        "Swimbait",
+        "Ned Rig"
+    ],
+
+    "Saltwater Gear": [
+        "Bucktail Jig",
+        "Diamond Jig",
+        "Pencil Popper",
+        "SP Minnow",
+        "Tsunami Swim Shad",
+        "Flutter Spoon"
+    ],
+
+    "Trout Gear": [
+        "Inline Spinner",
+        "PowerBait",
+        "Trout Magnet",
+        "Fly Setup"
+    ],
+
+    "Catfish Gear": [
+        "Circle Hooks",
+        "Cut Bait Rig",
+        "Slip Sinker Rig"
+    ]
+}
 
 species_colors = {
     "Largemouth Bass": [0, 255, 120, 255],
@@ -209,12 +262,16 @@ species_colors = {
 DB_FILE = "fishing_master_db.json"
 
 def load_data():
+
     if os.path.exists(DB_FILE):
+
         with open(DB_FILE, "r") as f:
             return json.load(f)
+
     return {"catches": [], "lures": []}
 
 def save_data():
+
     data = {
         "catches": st.session_state['my_catches'],
         "lures": st.session_state['lures_owned']
@@ -259,6 +316,7 @@ def haversine(lat1, lon1, lat2, lon2):
 def get_weather_intel(lat, lon):
 
     try:
+
         url = (
             f"https://api.open-meteo.com/v1/forecast?"
             f"latitude={lat}&longitude={lon}"
@@ -304,16 +362,28 @@ with st.sidebar:
 
     st.divider()
 
-    st.header("🧰 Gear Locker")
+    st.header("🎒 Gear Locker")
 
-    new_lures = st.multiselect(
-        "Stock Your Bag:",
-        ALL_LURES,
-        default=st.session_state['lures_owned']
-    )
+    selected_gear = []
 
-    if new_lures != st.session_state['lures_owned']:
-        st.session_state['lures_owned'] = new_lures
+    for category, items in LURE_CATEGORIES.items():
+
+        st.subheader(category)
+
+        chosen = st.multiselect(
+            f"{category}",
+            items,
+            default=[
+                x for x in st.session_state['lures_owned']
+                if x in items
+            ]
+        )
+
+        selected_gear.extend(chosen)
+
+    if selected_gear != st.session_state['lures_owned']:
+
+        st.session_state['lures_owned'] = selected_gear
         save_data()
 
     if st.session_state['locked_spot']:
@@ -321,6 +391,7 @@ with st.sidebar:
         st.success(f"Objective Locked: {st.session_state['locked_spot']}")
 
         if st.button("Abort Mission"):
+
             st.session_state['locked_spot'] = None
             st.rerun()
 
@@ -336,7 +407,7 @@ tabs = st.tabs([
 ])
 
 # =========================================================
-# TAB 1 - STRATEGY
+# STRATEGY TAB
 # =========================================================
 
 with tabs[0]:
@@ -346,6 +417,20 @@ with tabs[0]:
     target = st.selectbox(
         "Select Target Species:",
         [None] + ALL_SPECIES
+    )
+
+    desired_weight = st.slider(
+        "Desired Fish Weight (lbs)",
+        min_value=1,
+        max_value=100,
+        value=5
+    )
+
+    max_distance = st.slider(
+        "Maximum Travel Distance (miles)",
+        min_value=1,
+        max_value=500,
+        value=50
     )
 
     if target:
@@ -365,24 +450,27 @@ with tabs[0]:
 
             if d[0] == target:
 
-                matches.append({
-                    "name": name,
-                    "dist": round(haversine(u_lat, u_lon, d[1], d[2]), 1),
-                    "tip": d[5],
-                    "lat": d[1],
-                    "lon": d[2]
-                })
+                distance = round(haversine(u_lat, u_lon, d[1], d[2]), 1)
 
-                map_points.append({
-                    "lat": d[1],
-                    "lon": d[2],
-                    "name": name,
-                    "color": species_colors.get(target, [255,255,255,255])
-                })
+                if distance <= max_distance and d[6] >= desired_weight:
+
+                    matches.append({
+                        "name": name,
+                        "dist": distance,
+                        "tip": d[5],
+                        "lat": d[1],
+                        "lon": d[2],
+                        "weight": d[6]
+                    })
+
+                    map_points.append({
+                        "lat": d[1],
+                        "lon": d[2],
+                        "name": name,
+                        "color": species_colors.get(target, [255,255,255,255])
+                    })
 
         map_df = pd.DataFrame(map_points)
-
-        # PATHS
 
         line_data = []
 
@@ -395,27 +483,23 @@ with tabs[0]:
                 ]
             })
 
-        # VIEW
-
         view_state = pdk.ViewState(
             latitude=u_lat,
             longitude=u_lon,
             zoom=11,
-            pitch=50,
-            bearing=15
+            pitch=45,
+            bearing=10
         )
-
-        # LAYERS
 
         line_layer = pdk.Layer(
             "PathLayer",
             data=line_data,
             get_path="path",
-            get_color=[0, 255, 255],
+            get_color=[0, 120, 255],
             width_scale=6,
             width_min_pixels=2,
             get_width=4,
-            opacity=0.45
+            opacity=0.35
         )
 
         scatter_layer = pdk.Layer(
@@ -426,11 +510,8 @@ with tabs[0]:
             get_radius=180,
             opacity=0.85,
             pickable=True,
-            stroked=True,
-            filled=True,
             radius_min_pixels=8,
-            radius_max_pixels=25,
-            line_width_min_pixels=2
+            radius_max_pixels=25
         )
 
         text_layer = pdk.Layer(
@@ -439,15 +520,13 @@ with tabs[0]:
             get_position='[lon, lat]',
             get_text='name',
             get_size=14,
-            get_color=[255,255,255],
+            get_color=[20,20,20],
             get_alignment_baseline="'bottom'"
         )
 
-        # MAP
-
         st.pydeck_chart(
             pdk.Deck(
-                map_style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+                map_style="mapbox://styles/mapbox/navigation-night-v1",
                 initial_view_state=view_state,
                 layers=[
                     line_layer,
@@ -457,24 +536,22 @@ with tabs[0]:
                 tooltip={
                     "html": """
                     <div style="
-                        background-color:#111827;
+                        background-color:#ffffff;
                         padding:12px;
                         border-radius:12px;
-                        color:white;
+                        color:black;
                     ">
                         <b>{name}</b>
                     </div>
-                    """,
-                    "style": {
-                        "backgroundColor": "transparent",
-                        "color": "white"
-                    }
+                    """
                 }
             ),
             use_container_width=True
         )
 
-        # LOCATION CARDS
+        if not matches:
+
+            st.warning("No matching locations found with current filters.")
 
         for m in matches:
 
@@ -482,6 +559,8 @@ with tabs[0]:
 
                 st.write(f"### Tactical Notes")
                 st.write(m['tip'])
+                st.write(f"### Expected Fish Size")
+                st.write(f"Average target size: {m['weight']} lbs")
 
                 if st.button("Lock Location", key=m['name']):
 
@@ -489,7 +568,7 @@ with tabs[0]:
                     st.rerun()
 
 # =========================================================
-# TAB 2 - INTEL
+# INTEL TAB
 # =========================================================
 
 with tabs[1]:
@@ -534,48 +613,8 @@ with tabs[1]:
                 </div>
                 """, unsafe_allow_html=True)
 
-            score = 75
-
-            if intel['pres'] < 30.0:
-                score += 10
-
-            if 6 <= datetime.now().hour <= 9:
-                score += 15
-
-            st.markdown(f"""
-            <div class="metric-card"
-                 style="border-left: 6px solid #00ffff;">
-                <div class="metric-label">
-                    Probability of Strike
-                </div>
-                <div class="metric-value"
-                     style="font-size:2.5rem;">
-                    {min(score,100)}%
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.subheader("🛡️ Tactical Recommendation")
-
-        st.markdown("""
-        <div class="metric-card">
-            <div class="metric-label">
-                Primary Loadout
-            </div>
-
-            <div class="metric-value"
-                 style="font-size:1rem; line-height:1.8;">
-                 
-                <b>Rod:</b> 7'0 Medium-Heavy Fast Action<br>
-                <b>Line:</b> 15lb Fluorocarbon Mainline<br>
-                <b>Primary Objective:</b> Wind-blown points and hard cover.<br>
-                <b>Best Retrieve:</b> Slow roll with pauses near structure.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
 # =========================================================
-# TAB 3 - LOGBOOK
+# LOGBOOK TAB
 # =========================================================
 
 with tabs[2]:
@@ -608,8 +647,6 @@ with tabs[2]:
 
             st.rerun()
 
-    st.divider()
-
     for c in st.session_state['my_catches'][::-1]:
 
         st.markdown(f"""
@@ -622,7 +659,7 @@ with tabs[2]:
         """, unsafe_allow_html=True)
 
 # =========================================================
-# TAB 4 - LOCKER
+# LOCKER TAB
 # =========================================================
 
 with tabs[3]:
@@ -631,13 +668,13 @@ with tabs[3]:
 
     if not st.session_state['lures_owned']:
 
-        st.write("Locker is currently empty. Add gear in the sidebar.")
+        st.write("Locker is currently empty.")
 
     else:
 
         for lure in st.session_state['lures_owned']:
 
             st.markdown(
-                f'<div class="gear-item">🛡️ {lure}</div>',
+                f'<div class="gear-item">🎣 {lure}</div>',
                 unsafe_allow_html=True
             )
