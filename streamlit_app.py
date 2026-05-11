@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 # =========================================================
-# IMPROVED MODERN UI STYLING
+# IMPROVED PREMIUM UI
 # =========================================================
 
 st.markdown("""
@@ -30,17 +30,17 @@ html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
 
-/* SOFTER DARK THEME */
+/* APP BACKGROUND */
 
 .main {
-    background: linear-gradient(to bottom right, #dbe4ee, #b8c7d9);
+    background: linear-gradient(to bottom right, #eef3f8, #dbe7f3);
     color: #0f172a;
 }
 
-/* FIX CUT OFF TABS */
+/* CONTAINER */
 
 .block-container {
-    padding-top: 0.5rem;
+    padding-top: 0.4rem;
     padding-bottom: 2rem;
     max-width: 1500px;
 }
@@ -56,8 +56,8 @@ h1, h2, h3 {
 /* SIDEBAR */
 
 section[data-testid="stSidebar"] {
-    background: #d7e1ec;
-    border-right: 1px solid #94a3b8;
+    background: #dce7f2;
+    border-right: 1px solid #b7c6d8;
 }
 
 /* TABS */
@@ -84,16 +84,16 @@ section[data-testid="stSidebar"] {
 /* METRIC CARDS */
 
 .metric-card {
-    background: linear-gradient(145deg, #f8fafc, #dbe4ee);
+    background: linear-gradient(145deg, #ffffff, #edf3fa);
     border-radius: 18px;
     padding: 18px;
-    border: 1px solid #94a3b8;
+    border: 1px solid #c3d1e1;
     margin-bottom: 15px;
-    box-shadow: 0px 6px 18px rgba(0,0,0,0.12);
+    box-shadow: 0px 6px 18px rgba(0,0,0,0.08);
 }
 
 .metric-label {
-    color: #475569;
+    color: #64748b;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -116,7 +116,7 @@ section[data-testid="stSidebar"] {
     display: inline-block;
     margin: 6px;
     color: #0f172a;
-    border: 1px solid #94a3b8;
+    border: 1px solid #b7c6d8;
     font-weight: 700;
 }
 
@@ -127,13 +127,6 @@ iframe {
     overflow: hidden !important;
 }
 
-/* EXPANDERS */
-
-.streamlit-expanderHeader {
-    background-color: #dbe4ee;
-    border-radius: 12px;
-}
-
 /* BUTTONS */
 
 .stButton button {
@@ -142,7 +135,7 @@ iframe {
     color: white;
     border: none;
     font-weight: 700;
-    padding: 0.6rem 1rem;
+    padding: 0.65rem 1rem;
 }
 
 .stButton button:hover {
@@ -156,34 +149,35 @@ iframe {
 .stNumberInput input,
 .stSelectbox div,
 .stMultiSelect div {
-    background-color: #f8fafc !important;
+    background-color: white !important;
     color: #0f172a !important;
     border-radius: 10px !important;
 }
 
-/* SLIDERS */
+/* EXPANDERS */
 
-.stSlider {
-    padding-top: 1rem;
+.streamlit-expanderHeader {
+    background-color: #edf3fa;
+    border-radius: 12px;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # =========================================================
-# UPDATED DATABASE
+# DATABASE
 # =========================================================
 
 SITES = {
     "Albidale Park Pond": ["Largemouth Bass", 40.1277, -75.0467, "LilyPads", "Fresh", "Shallow weed edges near the walking trail produce best at sunrise.", 8],
-    "Quarry Pond (Cathedral Rd Area)": ["Largemouth Bass", 40.1385, -75.0598, "Rocks", "Fresh", "Deep clear water; use natural colors.", 10],
-    "Mason's Mill Pond": ["Largemouth Bass", 40.1512, -75.0705, "LilyPads", "Fresh", "Heavy surface matted vegetation.", 6],
-    "Lorimer Park (Pennypack)": ["Smallmouth Bass", 40.0988, -75.0612, "Current", "Fresh", "Target deep current seams below bridge sections.", 5],
-    "Neshaminy Creek (Tyler)": ["Smallmouth Bass", 40.2115, -74.9618, "Rocks", "Fresh", "Fast water near the dam.", 5],
+    "Quarry Pond": ["Largemouth Bass", 40.1385, -75.0598, "Rocks", "Fresh", "Deep clear water; use natural colors.", 10],
+    "Mason's Mill Pond": ["Largemouth Bass", 40.1512, -75.0705, "LilyPads", "Fresh", "Heavy vegetation mats.", 6],
+    "Lorimer Park": ["Smallmouth Bass", 40.0988, -75.0612, "Current", "Fresh", "Deep current seams below bridges.", 5],
+    "Neshaminy Creek": ["Smallmouth Bass", 40.2115, -74.9618, "Rocks", "Fresh", "Fast water near dam areas.", 5],
     "Island Beach State Park": ["Striped Bass", 39.8850, -74.0850, "Open", "Salt", "Find deeper sloughs at low tide.", 65],
-    "Barnegat Inlet": ["Striped Bass", 39.7595, -74.1008, "Rocks", "Salt", "Heavy current; fish slack tide.", 60],
-    "Cape May Inlet": ["Bull Shark", 38.9345, -74.9015, "Current", "Salt", "Heavy tackle required; use wire leader.", 450],
-    "Wissahickon (Valley Green)": ["Rainbow Trout", 40.0525, -75.2155, "Current", "Fresh", "Stocked pools near the inn.", 4]
+    "Barnegat Inlet": ["Striped Bass", 39.7595, -74.1008, "Rocks", "Salt", "Heavy current during tide swings.", 60],
+    "Cape May Inlet": ["Bull Shark", 38.9345, -74.9015, "Current", "Salt", "Heavy tackle and wire leaders required.", 450],
+    "Wissahickon Creek": ["Rainbow Trout", 40.0525, -75.2155, "Current", "Fresh", "Stocked pools near the inn.", 4]
 }
 
 ALL_SPECIES = sorted([
@@ -205,12 +199,34 @@ ALL_SPECIES = sorted([
     "Mahi Mahi",
     "Flounder",
     "Red Drum",
-    "Black Drum",
     "Bluegill",
     "Salmon",
-    "Trout",
     "Tarpon"
 ])
+
+SPECIES_WEIGHT_LIMITS = {
+    "Largemouth Bass": 20,
+    "Smallmouth Bass": 12,
+    "Striped Bass": 80,
+    "Bull Shark": 800,
+    "Rainbow Trout": 15,
+    "Bluefish": 25,
+    "Catfish": 100,
+    "Musky": 60,
+    "Walleye": 20,
+    "Northern Pike": 40,
+    "Crappie": 5,
+    "Perch": 5,
+    "Snakehead": 20,
+    "Carp": 50,
+    "Tuna": 1000,
+    "Mahi Mahi": 60,
+    "Flounder": 20,
+    "Red Drum": 70,
+    "Bluegill": 3,
+    "Salmon": 60,
+    "Tarpon": 250
+}
 
 LURE_CATEGORIES = {
     "Bass Gear": [
@@ -229,8 +245,7 @@ LURE_CATEGORIES = {
         "Diamond Jig",
         "Pencil Popper",
         "SP Minnow",
-        "Tsunami Swim Shad",
-        "Flutter Spoon"
+        "Tsunami Swim Shad"
     ],
 
     "Trout Gear": [
@@ -248,9 +263,9 @@ LURE_CATEGORIES = {
 }
 
 species_colors = {
-    "Largemouth Bass": [0, 255, 120, 255],
-    "Smallmouth Bass": [255, 170, 0, 255],
-    "Striped Bass": [0, 180, 255, 255],
+    "Largemouth Bass": [0, 220, 120, 255],
+    "Smallmouth Bass": [255, 140, 0, 255],
+    "Striped Bass": [0, 170, 255, 255],
     "Bull Shark": [255, 50, 50, 255],
     "Rainbow Trout": [180, 0, 255, 255]
 }
@@ -281,7 +296,7 @@ def save_data():
         json.dump(data, f)
 
 # =========================================================
-# INITIALIZE SESSION
+# SESSION
 # =========================================================
 
 if 'init' not in st.session_state:
@@ -296,7 +311,7 @@ if 'init' not in st.session_state:
     st.session_state['init'] = True
 
 # =========================================================
-# UTILITY FUNCTIONS
+# FUNCTIONS
 # =========================================================
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -371,7 +386,7 @@ with st.sidebar:
         st.subheader(category)
 
         chosen = st.multiselect(
-            f"{category}",
+            category,
             items,
             default=[
                 x for x in st.session_state['lures_owned']
@@ -385,15 +400,6 @@ with st.sidebar:
 
         st.session_state['lures_owned'] = selected_gear
         save_data()
-
-    if st.session_state['locked_spot']:
-
-        st.success(f"Objective Locked: {st.session_state['locked_spot']}")
-
-        if st.button("Abort Mission"):
-
-            st.session_state['locked_spot'] = None
-            st.rerun()
 
 # =========================================================
 # MAIN TABS
@@ -419,11 +425,13 @@ with tabs[0]:
         [None] + ALL_SPECIES
     )
 
+    max_weight = SPECIES_WEIGHT_LIMITS.get(target, 50)
+
     desired_weight = st.slider(
         "Desired Fish Weight (lbs)",
         min_value=1,
-        max_value=100,
-        value=5
+        max_value=max_weight,
+        value=min(5, max_weight)
     )
 
     max_distance = st.slider(
@@ -483,60 +491,59 @@ with tabs[0]:
                 ]
             })
 
-        view_state = pdk.ViewState(
-            latitude=u_lat,
-            longitude=u_lon,
-            zoom=11,
-            pitch=45,
-            bearing=10
-        )
-
-        line_layer = pdk.Layer(
-            "PathLayer",
-            data=line_data,
-            get_path="path",
-            get_color=[0, 120, 255],
-            width_scale=6,
-            width_min_pixels=2,
-            get_width=4,
-            opacity=0.35
-        )
-
-        scatter_layer = pdk.Layer(
-            "ScatterplotLayer",
-            data=map_df,
-            get_position='[lon, lat]',
-            get_fill_color='color',
-            get_radius=180,
-            opacity=0.85,
-            pickable=True,
-            radius_min_pixels=8,
-            radius_max_pixels=25
-        )
-
-        text_layer = pdk.Layer(
-            "TextLayer",
-            data=map_df,
-            get_position='[lon, lat]',
-            get_text='name',
-            get_size=14,
-            get_color=[20,20,20],
-            get_alignment_baseline="'bottom'"
-        )
+        # THIS FIXES THE WHITE MAP PROBLEM
+        # Apple Maps style look
 
         st.pydeck_chart(
             pdk.Deck(
-                map_style="mapbox://styles/mapbox/navigation-night-v1",
-                initial_view_state=view_state,
+                map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+                initial_view_state=pdk.ViewState(
+                    latitude=u_lat,
+                    longitude=u_lon,
+                    zoom=11,
+                    pitch=45,
+                    bearing=15
+                ),
                 layers=[
-                    line_layer,
-                    scatter_layer,
-                    text_layer
+
+                    pdk.Layer(
+                        "PathLayer",
+                        data=line_data,
+                        get_path="path",
+                        get_color=[37, 99, 235],
+                        width_scale=6,
+                        width_min_pixels=2,
+                        get_width=4,
+                        opacity=0.45
+                    ),
+
+                    pdk.Layer(
+                        "ScatterplotLayer",
+                        data=map_df,
+                        get_position='[lon, lat]',
+                        get_fill_color='color',
+                        get_radius=180,
+                        opacity=0.9,
+                        pickable=True,
+                        radius_min_pixels=8,
+                        radius_max_pixels=25
+                    ),
+
+                    pdk.Layer(
+                        "TextLayer",
+                        data=map_df,
+                        get_position='[lon, lat]',
+                        get_text='name',
+                        get_size=14,
+                        get_color=[20,20,20],
+                        get_alignment_baseline="'bottom'"
+                    )
                 ],
+
                 tooltip={
                     "html": """
                     <div style="
-                        background-color:#ffffff;
+                        background-color:white;
                         padding:12px;
                         border-radius:12px;
                         color:black;
@@ -557,10 +564,11 @@ with tabs[0]:
 
             with st.expander(f"📍 {m['name']} ({m['dist']} mi)"):
 
-                st.write(f"### Tactical Notes")
+                st.write("### Tactical Notes")
                 st.write(m['tip'])
+
                 st.write(f"### Expected Fish Size")
-                st.write(f"Average target size: {m['weight']} lbs")
+                st.write(f"{m['weight']} lbs average")
 
                 if st.button("Lock Location", key=m['name']):
 
@@ -612,6 +620,53 @@ with tabs[1]:
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+
+            # RESTORED STRIKE SCORE
+
+            score = 75
+
+            if intel['pres'] < 30.0:
+                score += 10
+
+            if 6 <= datetime.now().hour <= 9:
+                score += 15
+
+            st.markdown(f"""
+            <div class="metric-card"
+                 style="border-left: 6px solid #2563eb;">
+                <div class="metric-label">
+                    Probability of Strike
+                </div>
+                <div class="metric-value"
+                     style="font-size:2.3rem;">
+                    {min(score,100)}%
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # RESTORED TACTICAL RECOMMENDATION SECTION
+
+        st.subheader("🛡️ Tactical Recommendation")
+
+        st.markdown("""
+        <div class="metric-card">
+            <div class="metric-label">
+                Recommended Setup
+            </div>
+
+            <div class="metric-value"
+                 style="font-size:1rem; line-height:1.8;">
+
+                <b>Rod:</b> 7'0 Medium Heavy Fast Action<br>
+                <b>Reel:</b> 7.3:1 Baitcaster<br>
+                <b>Line:</b> 15lb Fluorocarbon<br>
+                <b>Primary Lure:</b> Chatterbait / Swimbait<br>
+                <b>Best Pattern:</b> Wind-blown banks and submerged cover<br>
+                <b>Best Feeding Window:</b> Sunrise and pre-storm pressure drops
+
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # =========================================================
 # LOGBOOK TAB
