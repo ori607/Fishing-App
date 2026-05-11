@@ -1,166 +1,199 @@
 import streamlit as st
 import requests
-from datetime import datetime, timedelta
+import pandas as pd
+from datetime import datetime
 import math
 
-# --- 1. SETTINGS & STYLING ---
-st.set_page_config(page_title="FishAI Master", page_icon="🎣", layout="wide")
+# --- 1. SETTINGS ---
+st.set_page_config(page_title="FishAI Master Pro", page_icon="🎣", layout="wide")
 
-# --- 2. MASTER DATA ---
-ALL_SPECIES = sorted([
-    "Largemouth Bass", "Smallmouth Bass", "Striped Bass", "Bluefish",
-    "Rainbow Trout", "Brown Trout", "Channel Catfish", "Blue Catfish", 
-    "Bull Shark", "Sandbar Shark", "Fluke (Summer Flounder)", "Musky"
-])
-
-# Expanded database with Coordinates
+# --- 2. THE MASTER DATABASE (Expanded & Persistent) ---
+# Format: "Name": [Species, Lat, Lon, CoverType, WaterType, Tip, MaxWeight]
 SITES = {
-    "Quarry Road Pond (Bryn Athyn)": ["Largemouth Bass", 40.135, -75.064, "Rocks", "Fresh", "Focus on steep drop-offs."],
-    "Lower Moreland Park Lake": ["Largemouth Bass", 40.121, -75.055, "LilyPads", "Fresh", "Fish near the drain pipe."],
-    "Pennypack (Lorimer)": ["Smallmouth Bass", 40.101, -75.062, "Current", "Fresh", "Target current breaks."],
-    "Island Beach State Park": ["Striped Bass", 39.885, -74.085, "Open", "Salt", "Target the 'sloughs' at low tide."],
-    "Cape May Inlet": ["Bull Shark", 38.933, -74.903, "Current", "Salt", "Heavy current; use wire leaders."]
+    "Quarry Road Pond (Bryn Athyn)": ["Largemouth Bass", 40.135, -75.064, "Rocks", "Fresh", "Focus on steep drop-offs.", 8],
+    "Lower Moreland Park Lake": ["Largemouth Bass", 40.121, -75.055, "LilyPads", "Fresh", "Fish near the drain pipe.", 6],
+    "Mason's Mill Pond": ["Largemouth Bass", 40.151, -75.071, "LilyPads", "Fresh", "Heavy vegetation; use weedless.", 5],
+    "Pennypack (Lorimer)": ["Smallmouth Bass", 40.101, -75.062, "Current", "Fresh", "Target current breaks behind rocks.", 5],
+    "Neshaminy Creek (Tyler Park)": ["Smallmouth Bass", 40.211, -74.962, "Rocks", "Fresh", "Deep pools near the dam.", 4],
+    "Delaware River (Lumberville)": ["Smallmouth Bass", 40.401, -75.041, "Current", "Fresh", "Best local smallie fishery.", 6],
+    "Perkiomen Creek": ["Smallmouth Bass", 40.155, -75.412, "Current", "Fresh", "Fish the eddies.", 5],
+    "Island Beach State Park": ["Striped Bass", 39.885, -74.085, "Open", "Salt", "Target the 'sloughs'.", 60],
+    "Barnegat Inlet": ["Striped Bass", 39.758, -74.101, "Rocks", "Salt", "High current; use heavy jigs.", 55],
+    "Cape May Inlet": ["Bull Shark", 38.933, -74.903, "Current", "Salt", "Use wire leaders and fresh bait.", 400],
+    "Wildwood Surf": ["Sandbar Shark", 38.981, -74.821, "Open", "Salt", "Long casts past the breakers.", 150],
+    "Wissahickon Creek": ["Rainbow Trout", 40.071, -75.212, "Current", "Fresh", "Stocked sections near valley green.", 4]
 }
 
-# --- 3. HELPER FUNCTIONS (Solunar & Tides) ---
-def get_solunar_score(lat):
-    # Simplified Solunar: Peaks occur roughly every 12.5 hours
-    # Based on current date/time overlap with lunar cycle
-    now = datetime.now()
-    # Logic: High activity during moon transit (simplified for app logic)
-    lunar_factor = 10 if (now.hour in [6, 7, 18, 19]) else 0
-    return lunar_factor
+ALL_SPECIES = sorted(list(set([d[0] for d in SITES.values()])) + [
+    "Bluefish", "Channel Catfish", "Blue Catfish", "Flathead Catfish", 
+    "Musky", "Walleye", "Brown Trout", "Brook Trout", "Fluke", "Weakfish"
+])
 
-def get_tide_status(lat, lon):
-    # In a full production app, this would call a Tides API
-    # Here we simulate based on the 6-hour cycle
-    hour = datetime.now().hour
-    if 0 <= hour % 12 < 6: return "Incoming (Flood)", 15
-    return "Outgoing (Ebb)", 5
+ALL_LURES = sorted([
+    "Senko (Stick Bait)", "Hollow Body Frog", "Squarebill Crankbait", "Deep Diver",
+    "Chatterbait", "Football Jig", "Finesse Jig", "Ned Rig", "Tube Jig", 
+    "Bucktail Jig", "Whopper Plopper", "Popper", "Spinnerbait", "Buzzbait",
+    "Keitech Swimbait", "Jerkbait", "Inline Spinner", "Marabou Jig"
+])
 
-# Distance Calculator (Haversine Formula)
+# --- 3. CORE LOGIC FUNCTIONS ---
 def haversine(lat1, lon1, lat2, lon2):
-    r = 3958.8 # Miles
+    r = 3958.8 
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lon2 - lon1)
+    dphi, dlambda = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
     a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
     return 2 * r * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
+def get_solunar_status():
+    now = datetime.now()
+    # Major windows roughly around dawn/dusk
+    if (6 <= now.hour <= 8) or (18 <= now.hour <= 20):
+        return "MAJOR Peak", 20
+    return "Minor Activity", 5
+
 # --- 4. SESSION STATE ---
 if 'locked_spot' not in st.session_state: st.session_state['locked_spot'] = None
-if 'user_city' not in st.session_state: st.session_state['user_city'] = "Huntingdon Valley, PA"
 if 'user_coords' not in st.session_state: st.session_state['user_coords'] = (40.13, -75.06)
+if 'my_catches' not in st.session_state: st.session_state['my_catches'] = []
 
-# --- 5. SIDEBAR ---
+# --- 5. SIDEBAR (The Control Center) ---
 with st.sidebar:
-    st.header("🌍 Your Location")
-    # FIX #2: User enters their own location
-    user_city = st.text_input("Enter City/Zip:", value=st.session_state['user_city'])
-    if st.button("Update Home Base"):
-        # This simulates a Geocoding call
-        if "Cape May" in user_city: st.session_state['user_coords'] = (38.93, -74.90)
-        else: st.session_state['user_coords'] = (40.13, -75.06) # Default back to PA
-        st.session_state['user_city'] = user_city
-        st.success("Location Updated!")
-
+    st.title("Settings")
+    user_loc = st.text_input("Home Base:", value="Huntingdon Valley, PA")
+    if st.button("Set Location"):
+        # Simulated Geocoding
+        if "Cape May" in user_loc: st.session_state['user_coords'] = (38.93, -74.90)
+        else: st.session_state['user_coords'] = (40.13, -75.06)
+        st.rerun()
+    
     st.divider()
-    st.header("👤 My Gear Locker")
-    if 'profile_lures' not in st.session_state: st.session_state['profile_lures'] = []
-    st.session_state['profile_lures'] = st.multiselect("Lures You Own:", ["Senko", "Frog", "Jig", "Ned Rig", "Tube"], default=st.session_state['profile_lures'])
+    st.header("🎒 My Gear Locker")
+    if 'lures_owned' not in st.session_state: st.session_state['lures_owned'] = ["Senko", "Frog"]
+    st.session_state['lures_owned'] = st.multiselect("Lures in your bag:", ALL_LURES, default=st.session_state['lures_owned'])
 
-# --- 6. MAIN INTERFACE ---
-tabs = st.tabs(["🎯 Strategy Planner", "📊 Advanced Tactical Analysis", "📚 Learn Center"])
+    if st.session_state['locked_spot']:
+        st.divider()
+        st.success(f"Locked: {st.session_state['locked_spot']}")
+        if st.button("Reset Selection"):
+            st.session_state['locked_spot'] = None
+            st.rerun()
 
-# --- TAB: STRATEGY PLANNER ---
+# --- 6. MAIN TABS ---
+tabs = st.tabs(["🎯 Strategy Planner", "📊 Advanced Analysis", "📸 Catch Journal", "📚 Learn Center"])
+
+# --- TAB 1: STRATEGY PLANNER ---
 with tabs[0]:
-    st.title("Top Local Spots")
-    c1, col_dist, c2 = st.columns([2, 1, 1])
+    st.title("Target Acquisition")
+    c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
-        species_search = st.selectbox("What are you fishing for?", [None] + ALL_SPECIES)
-    with col_dist:
-        max_dist = st.number_input("Max Miles from Home", value=50)
+        spec_choice = st.selectbox("Search Species:", [None] + ALL_SPECIES)
     with c2:
-        target_lb = st.slider("Target Weight (lbs)", 1, 100, 2)
+        dist_limit = st.number_input("Max Miles:", value=100)
+    with c3:
+        # Dynamic Weight Slider
+        max_w = 500 if spec_choice and "Shark" in spec_choice else 60 if spec_choice and "Striped" in spec_choice else 15
+        target_w = st.slider("Target Weight (lbs):", 1, max_w, 2)
 
-    if species_search:
+    if spec_choice:
         u_lat, u_lon = st.session_state['user_coords']
         matches = []
-        for name, data in SITES.items():
-            dist = haversine(u_lat, u_lon, data[1], data[2])
-            if data[0] == species_search and dist <= max_dist:
-                matches.append({"name": name, "dist": round(dist, 1), "tip": data[5]})
+        map_points = []
+        for name, d in SITES.items():
+            dist = haversine(u_lat, u_lon, d[1], d[2])
+            if d[0] == spec_choice and dist <= dist_limit and d[6] >= target_w:
+                matches.append({"name": name, "dist": round(dist, 1), "tip": d[5], "lat": d[1], "lon": d[2]})
+                map_points.append({"lat": d[1], "lon": d[2]})
 
-        if not matches:
-            st.error("No spots found in your area. Try increasing 'Max Miles'.")
-        else:
-            for spot in matches:
+        if matches:
+            st.subheader("📍 Nearby Hotspots")
+            st.map(pd.DataFrame(map_points))
+            
+            for m in matches:
                 with st.container():
-                    col_info, col_btn = st.columns([3, 1])
-                    col_info.write(f"**{spot['name']}** ({spot['dist']} miles away)")
-                    if col_btn.button(f"Lock {spot['name']}", key=spot['name']):
-                        st.session_state['locked_spot'] = spot['name']
-                        st.session_state['target_species'] = species_search
-                        st.session_state['target_weight'] = target_lb
+                    col_txt, col_act = st.columns([3, 1])
+                    col_txt.write(f"**{m['name']}** - {m['dist']} miles away")
+                    col_txt.caption(f"Pro Tip: {m['tip']}")
+                    if col_act.button("Lock Trip", key=m['name']):
+                        st.session_state['locked_spot'] = m['name']
+                        st.session_state['target_spec'] = spec_choice
+                        st.session_state['target_w'] = target_w
                         st.rerun()
                     st.divider()
-    else:
-        st.warning("Search for a species to find spots near you.")
+        else:
+            st.warning("No spots found. Try expanding your search radius.")
 
-# --- TAB: ADVANCED TACTICAL ANALYSIS ---
+# --- TAB 2: ADVANCED ANALYSIS ---
 with tabs[1]:
     if not st.session_state['locked_spot']:
-        st.warning("Lock in a spot in the Strategy Planner first.")
+        st.info("Find a spot in the Strategy Planner and 'Lock Trip' to see live data.")
     else:
         spot = st.session_state['locked_spot']
-        data = SITES[spot]
-        st.header(f"Tactical Briefing: {spot}")
+        s_data = SITES[spot]
+        st.header(f"Live Briefing: {spot}")
         
-        # --- FIX #3: SOLUNAR & TIDE LOGIC ---
-        solunar_bonus = get_solunar_score(data[1])
-        tide_msg, tide_bonus = ("N/A", 0)
-        if data[4] == "Salt":
-            tide_msg, tide_bonus = get_tide_status(data[1], data[2])
-
-        # Weather Call
+        # TIME & SOLUNAR
+        now = datetime.now()
+        sol_msg, sol_pts = get_solunar_status()
+        
+        # WEATHER CALL
         try:
-            url = f"https://api.open-meteo.com/v1/forecast?latitude={data[1]}&longitude={data[2]}&current=temperature_2m,surface_pressure&temperature_unit=fahrenheit"
+            url = f"https://api.open-meteo.com/v1/forecast?latitude={s_data[1]}&longitude={s_data[2]}&current=temperature_2m,surface_pressure&temperature_unit=fahrenheit"
             res = requests.get(url).json()
             temp = res['current']['temperature_2m']
-            press = round(res['current']['surface_pressure'] * 0.02953, 2)
+            pres = round(res['current']['surface_pressure'] * 0.02953, 2)
             
-            # Final Advanced Bite Score
-            base_score = 65
-            if press < 29.95: base_score += 15 # Pressure drop
-            base_score += solunar_bonus
-            base_score += tide_bonus
+            # COMPLEX BITE SCORE
+            bite_score = 60 + sol_pts
+            if pres < 29.98: bite_score += 15
+            if s_data[4] == "Salt" and (6 <= now.hour <= 12): bite_score += 10 # Simulating tide flood
             
-            st.markdown(f"# Advanced Bite Score: {min(base_score, 100)}/100")
-            st.caption(f"Includes Solunar Bonus (+{solunar_bonus}) and Tide Bonus (+{tide_bonus})")
+            st.markdown(f"# Bite Score: {min(bite_score, 100)}/100")
+            st.subheader(f"{now.strftime('%A, %b %d')} | Window: {sol_msg}")
             
-            m1, m2, m3 = st.columns(3)
-            m1.metric("Air Temp", f"{temp}°F")
-            m2.metric("Pressure", f"{press} inHg")
-            m3.metric("Tide Status", tide_msg)
+            w1, w2, w3 = st.columns(3)
+            w1.metric("Air Temp", f"{temp}°F")
+            w2.metric("Pressure", f"{pres} inHg")
+            w3.metric("Solunar", sol_msg)
         except:
-            st.error("Live Data Offline.")
+            st.error("Weather data currently unavailable.")
 
         st.divider()
-        # Gear Recommendation based on target weight saved earlier
-        weight = st.session_state.get('target_weight', 2)
-        spec = st.session_state.get('target_species', "")
+        # ACCURATE GEAR LOGIC
+        st.subheader("⚙️ Tactical Loadout")
+        t_w = st.session_state.get('target_w', 2)
+        t_s = st.session_state.get('target_spec', "")
         
-        st.subheader("⚙️ Recommended Setup")
-        if "Shark" in spec: rod, line = "Heavy Conventional", "80lb Braid"
-        elif weight < 4: rod, line = "Ultralight / Fast", "6lb Mono"
-        else: rod, line = "Medium-Heavy", "15lb Fluorocarbon"
-        st.info(f"**Rod:** {rod} | **Line:** {line}")
+        if "Shark" in t_s: r, l = "Heavy Conventional", "100lb Braid + Steel"
+        elif t_w < 3: r, l = "6'0\" Ultralight", "4lb Mono"
+        elif "Striped" in t_s or t_w > 20: r, l = "7'6\" Heavy", "50lb Braid"
+        else: r, l = "7'0\" Medium-Heavy", "12lb Flouro"
+        
+        st.info(f"**Recommended:** {r} with {l}")
 
-# --- TAB: LEARN CENTER ---
+# --- TAB 3: CATCH JOURNAL (NEW FEATURE) ---
 with tabs[2]:
+    st.header("📸 Personal Catch Log")
+    with st.expander("Log a New Catch"):
+        c_spec = st.selectbox("Species caught:", ALL_SPECIES)
+        c_weight = st.number_input("Weight (lbs):", value=1.0)
+        c_img = st.file_uploader("Upload Fish Photo", type=['jpg', 'png'])
+        if st.button("Save to Journal"):
+            st.session_state['my_catches'].append({"spec": c_spec, "w": c_weight, "date": datetime.now().strftime("%x")})
+            st.success("Catch saved!")
+    
+    if st.session_state['my_catches']:
+        for catch in st.session_state['my_catches'][::-1]:
+            st.write(f"**{catch['date']}** - {catch['spec']} ({catch['w']} lbs)")
+    else:
+        st.caption("No catches logged yet. Tight lines!")
+
+# --- TAB 4: LEARN CENTER ---
+with tabs[3]:
     st.title("Fishing Academy")
-    topic = st.selectbox("Topic:", ["Texas Rig", "Tide Theory"])
+    topic = st.selectbox("Topic:", ["Texas Rig", "Ned Rig", "Solunar Theory"])
     if topic == "Texas Rig":
         st.image("https://upload.wikimedia.org/wikipedia/commons/e/e4/Texas_rig.png", width=400)
+    elif topic == "Ned Rig":
+        st.image("https://images.tacklewarehouse.com/fishing/Z-Man_Ned_Rig_Kit.jpg", width=400)
     else:
-        st.write("The 'Flood' tide (incoming) is generally best as it pushes baitfish toward the shore.")
+        st.write("Solunar theory suggests fish are more active when the moon is directly overhead or underfoot.")
