@@ -7,22 +7,43 @@ import math
 import json
 import os
 
-# --- 1. SETTINGS & STYLING ---
-st.set_page_config(page_title="FishAI Master Pro", page_icon="🎣", layout="wide")
+# --- 1. SETTINGS & MOBILE STYLING ---
+st.set_page_config(page_title="FishAI Mobile Pro", page_icon="🎣", layout="wide")
 
-# --- 2. THE MASTER DATABASE (Fully Restored & Expanded) ---
+# Custom CSS to fix mobile spacing and card styling
+st.markdown("""
+    <style>
+    .tactical-card {
+        background-color: #f0f2f6;
+        border-left: 5px solid #007bff;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    </style>
+    """, unsafe_content_label=True)
+
+# --- 2. THE MASTER DATABASE ---
 SITES = {
-    "Quarry Road Pond (Bryn Athyn)": ["Largemouth Bass", 40.135, -75.064, "Rocks", "Fresh", "Focus on steep drop-offs.", 8, "https://images.tacklewarehouse.com/fishing/LMB_Spot.jpg"],
-    "Lower Moreland Park Lake": ["Largemouth Bass", 40.121, -75.055, "LilyPads", "Fresh", "Fish near the drain pipe.", 6, "https://images.tacklewarehouse.com/fishing/LMPL.jpg"],
-    "Mason's Mill Pond": ["Largemouth Bass", 40.151, -75.071, "LilyPads", "Fresh", "Heavy vegetation; use weedless.", 5, ""],
-    "Pennypack (Lorimer)": ["Smallmouth Bass", 40.101, -75.062, "Current", "Fresh", "Target current breaks behind rocks.", 5, ""],
-    "Neshaminy Creek (Tyler Park)": ["Smallmouth Bass", 40.211, -74.962, "Rocks", "Fresh", "Deep pools near the dam.", 4, ""],
-    "Delaware River (Lumberville)": ["Smallmouth Bass", 40.401, -75.041, "Current", "Fresh", "Best local smallie fishery.", 6, ""],
-    "Island Beach State Park": ["Striped Bass", 39.885, -74.085, "Open", "Salt", "Target the 'sloughs'.", 60, ""],
-    "Barnegat Inlet": ["Striped Bass", 39.758, -74.101, "Rocks", "Salt", "High current; use heavy jigs.", 55, ""],
-    "Cape May Inlet": ["Bull Shark", 38.933, -74.903, "Current", "Salt", "Use wire leaders and fresh bait.", 400, ""],
-    "Wildwood Surf": ["Sandbar Shark", 38.981, -74.821, "Open", "Salt", "Long casts past the breakers.", 150, ""],
-    "Wissahickon Creek": ["Rainbow Trout", 40.071, -75.212, "Current", "Fresh", "Stocked sections near valley green.", 4, ""]
+    "Quarry Road Pond (Bryn Athyn)": ["Largemouth Bass", 40.135, -75.064, "Rocks", "Fresh", "Focus on steep drop-offs.", 8],
+    "Lower Moreland Park Lake": ["Largemouth Bass", 40.121, -75.055, "LilyPads", "Fresh", "Fish near the drain pipe.", 6],
+    "Mason's Mill Pond": ["Largemouth Bass", 40.151, -75.071, "LilyPads", "Fresh", "Heavy vegetation; use weedless.", 5],
+    "Pennypack (Lorimer)": ["Smallmouth Bass", 40.101, -75.062, "Current", "Fresh", "Target current breaks behind rocks.", 5],
+    "Neshaminy Creek (Tyler Park)": ["Smallmouth Bass", 40.211, -74.962, "Rocks", "Fresh", "Deep pools near the dam.", 4],
+    "Delaware River (Lumberville)": ["Smallmouth Bass", 40.401, -75.041, "Current", "Fresh", "Best local smallie fishery.", 6],
+    "Perkiomen Creek": ["Smallmouth Bass", 40.155, -75.412, "Current", "Fresh", "Fish the eddies.", 5],
+    "Island Beach State Park": ["Striped Bass", 39.885, -74.085, "Open", "Salt", "Target the 'sloughs'.", 60],
+    "Barnegat Inlet": ["Striped Bass", 39.758, -74.101, "Rocks", "Salt", "High current; use heavy jigs.", 55],
+    "Cape May Inlet": ["Bull Shark", 38.933, -74.903, "Current", "Salt", "Use wire leaders and fresh bait.", 400],
+    "Wildwood Surf": ["Sandbar Shark", 38.981, -74.821, "Open", "Salt", "Long casts past the breakers.", 150],
+    "Wissahickon Creek": ["Rainbow Trout", 40.071, -75.212, "Current", "Fresh", "Stocked sections near valley green.", 4]
 }
 
 ALL_SPECIES = sorted([
@@ -50,8 +71,8 @@ def haversine(lat1, lon1, lat2, lon2):
 
 def get_solunar_status():
     hour = datetime.now().hour
-    if (6 <= hour <= 9) or (17 <= hour <= 20): return "MAJOR PEAK FEEDING", 25
-    return "Steady Activity", 5
+    if (6 <= hour <= 9) or (17 <= hour <= 20): return "MAJOR PEAK", 25
+    return "Steady", 5
 
 # --- 4. SESSION STATE & STORAGE ---
 if 'locked_spot' not in st.session_state: st.session_state['locked_spot'] = None
@@ -59,7 +80,6 @@ if 'user_coords' not in st.session_state: st.session_state['user_coords'] = (40.
 if 'my_catches' not in st.session_state: st.session_state['my_catches'] = []
 if 'lures_owned' not in st.session_state: st.session_state['lures_owned'] = []
 
-# Persistent Storage Logic (Simple JSON)
 DB_FILE = "catches_db.json"
 if os.path.exists(DB_FILE):
     with open(DB_FILE, "r") as f:
@@ -71,7 +91,7 @@ def save_catches():
 
 # --- 5. SIDEBAR ---
 with st.sidebar:
-    st.title("🎛️ Command Center")
+    st.title("🎛️ Command")
     user_loc = st.text_input("Home Base:", value="Huntingdon Valley, PA")
     if st.button("Update GPS"):
         if "Cape May" in user_loc: st.session_state['user_coords'] = (38.93, -74.90)
@@ -79,68 +99,67 @@ with st.sidebar:
         st.rerun()
     
     st.divider()
-    st.header("🎒 Tackle Box")
-    st.session_state['lures_owned'] = st.multiselect("Your Owned Lures:", ALL_LURES, default=[l for l in st.session_state['lures_owned'] if l in ALL_LURES])
+    st.header("🎒 Gear")
+    st.session_state['lures_owned'] = st.multiselect("Your Lures:", ALL_LURES, default=[l for l in st.session_state['lures_owned'] if l in ALL_LURES])
 
     if st.session_state['locked_spot']:
-        st.success(f"Trip Locked: {st.session_state['locked_spot']}")
+        st.success(f"Locked: {st.session_state['locked_spot']}")
         if st.button("End Trip"):
             st.session_state['locked_spot'] = None
             st.rerun()
 
 # --- 6. MAIN TABS ---
-tabs = st.tabs(["🎯 Strategy Planner", "📊 Advanced Analysis", "📸 Catch Journal", "📚 Learn Center"])
+tabs = st.tabs(["🎯 Strategy", "📊 Analysis", "📸 Log", "📚 Learn"])
 
-# --- TAB 1: STRATEGY PLANNER ---
+# --- TAB 1: STRATEGY (Fixed Map) ---
 with tabs[0]:
     st.title("Target Acquisition")
-    c1, c2, c3 = st.columns([2, 1, 1])
-    with c1:
-        spec_search = st.selectbox("Search Species:", [None] + ALL_SPECIES)
-    with c2:
-        max_mi = st.number_input("Max Distance:", value=100)
-    with c3:
+    spec_search = st.selectbox("Search Species:", [None] + ALL_SPECIES)
+    
+    col_dist, col_lb = st.columns(2)
+    with col_dist: max_mi = st.number_input("Max Miles:", value=100)
+    with col_lb: 
         m_w = 500 if spec_search and "Shark" in spec_search else 60 if spec_search and "Striped" in spec_search else 15
-        t_w = st.slider("Target Weight (lbs):", 1, m_w, 2)
+        t_w = st.slider("Target Lbs:", 1, m_w, 2)
 
     if spec_search:
         u_lat, u_lon = st.session_state['user_coords']
         matches = []
-        map_points = [{"lat": u_lat, "lon": u_lon, "name": "HOME", "color": [0, 150, 255, 255], "radius": 1200}]
+        map_points = [{"lat": u_lat, "lon": u_lon, "name": "HOME", "color": [0, 150, 255, 255], "radius": 150}]
 
         for name, d in SITES.items():
             dist = haversine(u_lat, u_lon, d[1], d[2])
             if d[0] == spec_search and dist <= max_mi:
                 matches.append({"name": name, "dist": round(dist, 1), "tip": d[5], "lat": d[1], "lon": d[2], "max_w": d[6]})
-                map_points.append({"lat": d[1], "lon": d[2], "name": name, "color": [40, 200, 100, 255], "radius": 800})
+                map_points.append({"lat": d[1], "lon": d[2], "name": name, "color": [40, 200, 100, 255], "radius": 100})
 
         if matches:
+            # Fixed Mobile Map rendering
             st.pydeck_chart(pdk.Deck(
                 map_style='mapbox://styles/mapbox/satellite-streets-v11',
-                initial_view_state=pdk.ViewState(latitude=u_lat, longitude=u_lon, zoom=10, pitch=45),
-                layers=[pdk.Layer('ScatterplotLayer', data=pd.DataFrame(map_points), get_position='[lon, lat]', get_color='color', get_radius='radius', pickable=True)],
+                initial_view_state=pdk.ViewState(latitude=u_lat, longitude=u_lon, zoom=11, pitch=0), # Pitch 0 is better for mobile
+                layers=[pdk.Layer('ScatterplotLayer', data=pd.DataFrame(map_points), get_position='[lon, lat]', get_color='color', get_radius=200, pickable=True)],
                 tooltip={"text": "{name}"}
-            ))
+            ), use_container_width=True)
             
             for m in matches:
-                with st.expander(f"📍 {m['name']} ({m['dist']} miles)"):
-                    st.write(f"**Pro Tip:** {m['tip']}")
+                with st.expander(f"📍 {m['name']} ({m['dist']} mi)"):
+                    st.write(f"**Tip:** {m['tip']}")
                     if st.button("Lock Location", key=m['name']):
                         st.session_state['locked_spot'] = m['name']
                         st.session_state['target_spec'] = spec_search
                         st.session_state['target_w'] = t_w
                         st.rerun()
 
-# --- TAB 2: ADVANCED ANALYSIS ---
+# --- TAB 2: ADVANCED ANALYSIS (Clean Design) ---
 with tabs[1]:
     if not st.session_state['locked_spot']:
-        st.warning("Lock a location in the Strategy Planner first.")
+        st.warning("Lock a location first!")
     else:
         spot = st.session_state['locked_spot']
         s_data = SITES[spot]
-        st.header(f"Live Analysis: {spot}")
+        st.header(f"Live Brief: {spot}")
         
-        now = datetime.now()
         sol_msg, sol_pts = get_solunar_status()
         
         try:
@@ -149,24 +168,39 @@ with tabs[1]:
             temp, pres, wind = res['current']['temperature_2m'], round(res['current']['surface_pressure'] * 0.02953, 2), res['current']['wind_speed_10m']
             
             score = 65 + sol_pts + (10 if pres < 30.00 else 0)
-            st.markdown(f"# Bite Score: {min(score, 100)}/100")
+            st.markdown(f"### Bite Score: {min(score, 100)}/100")
             
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Air Temp", f"{temp}°F")
-            m2.metric("Pressure", f"{pres} inHg")
+            # Mobile Metrics
+            m1, m2 = st.columns(2)
+            m1.metric("Temp", f"{temp}°F")
+            m2.metric("Pres", f"{pres} inHg")
+            m3, m4 = st.columns(2)
             m3.metric("Wind", f"{wind} mph")
             m4.metric("Solunar", sol_msg)
-        except:
-            st.error("Live weather offline.")
+        except: st.error("Weather offline.")
 
         st.divider()
-        st.subheader("⚙️ Gear & Setup")
+        st.subheader("🛡️ Tactical Setup")
         t_w, t_s = st.session_state.get('target_w', 2), st.session_state.get('target_spec', "")
-        if "Shark" in t_s: r, l = "Heavy Conventional", "100lb Braid + Steel"
+        
+        if "Shark" in t_s: r, l = "Heavy Conv.", "100lb Braid + Steel"
         elif t_w < 4: r, l = "Ultralight", "6lb Mono"
         elif "Striped" in t_s or t_w > 30: r, l = "Heavy Action", "65lb Braid"
-        else: r, l = "Medium-Heavy", "15lb Fluorocarbon"
-        st.info(f"**Setup:** {r} | **Line:** {l}")
+        else: r, l = "Med-Heavy", "15lb Flouro"
+        
+        # Redesigned Gear Layout
+        st.markdown(f"""
+        <div class="tactical-card">
+            <p><b>🎣 Rod:</b> {r}</p>
+            <p><b>🧶 Line:</b> {l}</p>
+        </div>
+        """, unsafe_content_label=True)
+        
+        st.markdown(f"""
+        <div class="tactical-card" style="border-left-color: #28a745;">
+            <p><b>💼 Pro Pick:</b> 3/8oz Chatterbait (Chartreuse)</p>
+        </div>
+        """, unsafe_content_label=True)
 
 # --- TAB 3: CATCH JOURNAL ---
 with tabs[2]:
@@ -190,8 +224,8 @@ with tabs[2]:
 
 # --- TAB 4: LEARN CENTER ---
 with tabs[3]:
-    st.title("Fishing Academy")
+    st.title("Academy")
     topic = st.selectbox("Topic:", ["Texas Rig", "Solunar Theory"])
     if topic == "Texas Rig":
         st.image("https://upload.wikimedia.org/wikipedia/commons/e/e4/Texas_rig.png", width=400)
-        st.write("Best for fishing through heavy cover like the pads at Mason's Mill.")
+        st.caption("Weedless setup for heavy cover.")
