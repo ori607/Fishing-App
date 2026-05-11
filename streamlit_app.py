@@ -7,58 +7,157 @@ import math
 import json
 import os
 
-# --- 1. SETTINGS & ELITE TACTICAL STYLING ---
-st.set_page_config(page_title="FishAI Elite Tactical", page_icon="🎣", layout="wide")
+# =========================================================
+# PAGE CONFIG
+# =========================================================
+
+st.set_page_config(
+    page_title="FishAI Elite Tactical",
+    page_icon="🎣",
+    layout="wide"
+)
+
+# =========================================================
+# TACTICAL UI STYLING
+# =========================================================
 
 st.markdown("""
-    <style>
-    /* Global Tactical Theme */
-    .main { background-color: #f8f9fa; }
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { 
-        font-size: 14px; 
-        font-weight: 600; 
-        color: #4a5568; 
-    }
-    
-    /* Tactical Metric Cards */
-    .metric-card {
-        background-color: #ffffff;
-        border-radius: 12px;
-        padding: 15px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        margin-bottom: 12px;
-    }
-    .metric-label {
-        font-size: 0.75rem;
-        color: #718096;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-weight: 700;
-    }
-    .metric-value {
-        font-size: 1.1rem;
-        color: #2d3748;
-        font-weight: 800;
-        margin-top: 4px;
-    }
-    
-    /* Gear Locker Item */
-    .gear-item {
-        background: #edf2f7;
-        padding: 5px 12px;
-        border-radius: 20px;
-        display: inline-block;
-        margin: 4px;
-        font-size: 0.85rem;
-        border: 1px solid #cbd5e0;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
 
-# --- 2. THE HIGH-ACCURACY DATABASE (Fishbrain Precision) ---
-# Updated coordinates for Albidale/Lower Moreland and Cathedral/Quarry
+/* GLOBAL */
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
+.main {
+    background: linear-gradient(to bottom right, #0f172a, #111827);
+    color: white;
+}
+
+.block-container {
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+    max-width: 1500px;
+}
+
+/* HEADINGS */
+
+h1, h2, h3 {
+    color: white;
+    letter-spacing: -0.03em;
+}
+
+/* SIDEBAR */
+
+section[data-testid="stSidebar"] {
+    background: #0b1220;
+    border-right: 1px solid #1e293b;
+}
+
+/* TABS */
+
+.stTabs [data-baseweb="tab-list"] {
+    gap: 12px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 10px 20px;
+    color: white;
+    font-weight: 700;
+}
+
+.stTabs [aria-selected="true"] {
+    background: #2563eb;
+}
+
+/* METRIC CARDS */
+
+.metric-card {
+    background: linear-gradient(145deg, #1e293b, #111827);
+    border-radius: 18px;
+    padding: 18px;
+    border: 1px solid #334155;
+    margin-bottom: 15px;
+    box-shadow: 0px 6px 18px rgba(0,0,0,0.35);
+}
+
+.metric-label {
+    color: #94a3b8;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+.metric-value {
+    color: white;
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-top: 6px;
+}
+
+/* GEAR ITEMS */
+
+.gear-item {
+    background: #1e293b;
+    padding: 8px 16px;
+    border-radius: 999px;
+    display: inline-block;
+    margin: 6px;
+    color: white;
+    border: 1px solid #334155;
+    font-weight: 600;
+}
+
+/* MAP */
+
+iframe {
+    border-radius: 22px !important;
+    overflow: hidden !important;
+}
+
+/* EXPANDERS */
+
+.streamlit-expanderHeader {
+    background-color: #1e293b;
+    border-radius: 12px;
+}
+
+/* BUTTONS */
+
+.stButton button {
+    border-radius: 12px;
+    background: linear-gradient(to right, #2563eb, #1d4ed8);
+    color: white;
+    border: none;
+    font-weight: 700;
+    padding: 0.6rem 1rem;
+}
+
+.stButton button:hover {
+    background: linear-gradient(to right, #3b82f6, #2563eb);
+    color: white;
+}
+
+/* INPUTS */
+
+.stTextInput input,
+.stNumberInput input,
+.stSelectbox div {
+    background-color: #111827 !important;
+    color: white !important;
+    border-radius: 10px !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =========================================================
+# DATABASE
+# =========================================================
+
 SITES = {
     "Albidale Park (Lower Moreland)": ["Largemouth Bass", 40.1238, -75.0532, "LilyPads", "Fresh", "Enter via Warfield Dr; focus on the northwest bank.", 8],
     "Quarry Pond (Cathedral Rd Area)": ["Largemouth Bass", 40.1385, -75.0598, "Rocks", "Fresh", "Deep clear water; use natural colors.", 10],
@@ -71,10 +170,42 @@ SITES = {
     "Wissahickon (Valley Green)": ["Rainbow Trout", 40.0525, -75.2155, "Current", "Fresh", "Stocked pools near the inn.", 4]
 }
 
-ALL_SPECIES = sorted(["Largemouth Bass", "Smallmouth Bass", "Striped Bass", "Bull Shark", "Rainbow Trout", "Bluefish", "Catfish", "Musky", "Walleye"])
-ALL_LURES = sorted(["Senko (Green Pumpkin)", "Hollow Body Frog", "Chatterbait Jackhammer", "Ned Rig", "Whopper Plopper", "Keitech Swimbait", "Bucktail Jig", "Squarebill", "Jerkbait"])
+ALL_SPECIES = sorted([
+    "Largemouth Bass",
+    "Smallmouth Bass",
+    "Striped Bass",
+    "Bull Shark",
+    "Rainbow Trout",
+    "Bluefish",
+    "Catfish",
+    "Musky",
+    "Walleye"
+])
 
-# --- 3. CORE LOGIC & PERSISTENCE ---
+ALL_LURES = sorted([
+    "Senko (Green Pumpkin)",
+    "Hollow Body Frog",
+    "Chatterbait Jackhammer",
+    "Ned Rig",
+    "Whopper Plopper",
+    "Keitech Swimbait",
+    "Bucktail Jig",
+    "Squarebill",
+    "Jerkbait"
+])
+
+species_colors = {
+    "Largemouth Bass": [0, 255, 120, 255],
+    "Smallmouth Bass": [255, 170, 0, 255],
+    "Striped Bass": [0, 180, 255, 255],
+    "Bull Shark": [255, 50, 50, 255],
+    "Rainbow Trout": [180, 0, 255, 255]
+}
+
+# =========================================================
+# DATA STORAGE
+# =========================================================
+
 DB_FILE = "fishing_master_db.json"
 
 def load_data():
@@ -84,155 +215,429 @@ def load_data():
     return {"catches": [], "lures": []}
 
 def save_data():
-    data = {"catches": st.session_state['my_catches'], "lures": st.session_state['lures_owned']}
+    data = {
+        "catches": st.session_state['my_catches'],
+        "lures": st.session_state['lures_owned']
+    }
+
     with open(DB_FILE, "w") as f:
         json.dump(data, f)
 
+# =========================================================
+# INITIALIZE SESSION
+# =========================================================
+
 if 'init' not in st.session_state:
+
     saved = load_data()
+
     st.session_state['my_catches'] = saved.get("catches", [])
     st.session_state['lures_owned'] = saved.get("lures", [])
     st.session_state['locked_spot'] = None
-    st.session_state['user_coords'] = (40.13, -75.06) # Default PA
+    st.session_state['user_coords'] = (40.13, -75.06)
+
     st.session_state['init'] = True
 
+# =========================================================
+# UTILITY FUNCTIONS
+# =========================================================
+
 def haversine(lat1, lon1, lat2, lon2):
-    r = 3958.8 
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    dp, dl = math.radians(lat2-lat1), math.radians(lon2-lon1)
-    a = math.sin(dp/2)**2 + math.cos(p1)*math.cos(p2)*math.sin(dl/2)**2
-    return 2 * r * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+    r = 3958.8
+
+    p1 = math.radians(lat1)
+    p2 = math.radians(lat2)
+
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+
+    a = math.sin(dp / 2)**2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2)**2
+
+    return 2 * r * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 def get_weather_intel(lat, lon):
-    try:
-        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,surface_pressure,wind_speed_10m&temperature_unit=fahrenheit"
-        res = requests.get(url).json()
-        c = res['current']
-        return {"temp": c['temperature_2m'], "pres": round(c['surface_pressure'] * 0.02953, 2), "wind": c['wind_speed_10m']}
-    except: return None
 
-# --- 4. SIDEBAR (The Command Center) ---
+    try:
+        url = (
+            f"https://api.open-meteo.com/v1/forecast?"
+            f"latitude={lat}&longitude={lon}"
+            f"&current=temperature_2m,surface_pressure,wind_speed_10m"
+            f"&temperature_unit=fahrenheit"
+        )
+
+        res = requests.get(url).json()
+
+        c = res['current']
+
+        return {
+            "temp": c['temperature_2m'],
+            "pres": round(c['surface_pressure'] * 0.02953, 2),
+            "wind": c['wind_speed_10m']
+        }
+
+    except:
+        return None
+
+# =========================================================
+# SIDEBAR
+# =========================================================
+
 with st.sidebar:
+
     st.title("🦅 Tactical Ops")
-    loc_input = st.text_input("Current Base:", value="Huntingdon Valley, PA")
+
+    loc_input = st.text_input(
+        "Current Base:",
+        value="Huntingdon Valley, PA"
+    )
+
     if st.button("Sync GPS"):
-        st.session_state['user_coords'] = (38.93, -74.90) if "Cape May" in loc_input else (40.13, -75.06)
+
+        st.session_state['user_coords'] = (
+            (38.93, -74.90)
+            if "Cape May" in loc_input
+            else (40.13, -75.06)
+        )
+
         st.rerun()
 
     st.divider()
+
     st.header("🧰 Gear Locker")
-    new_lures = st.multiselect("Stock Your Bag:", ALL_LURES, default=st.session_state['lures_owned'])
+
+    new_lures = st.multiselect(
+        "Stock Your Bag:",
+        ALL_LURES,
+        default=st.session_state['lures_owned']
+    )
+
     if new_lures != st.session_state['lures_owned']:
         st.session_state['lures_owned'] = new_lures
         save_data()
 
     if st.session_state['locked_spot']:
+
         st.success(f"Objective Locked: {st.session_state['locked_spot']}")
+
         if st.button("Abort Mission"):
             st.session_state['locked_spot'] = None
             st.rerun()
 
-# --- 5. MAIN INTERFACE ---
-tabs = st.tabs(["🎯 Strategy", "📊 Intel", "📸 Logbook", "🎒 Locker"])
+# =========================================================
+# MAIN TABS
+# =========================================================
 
-# --- TAB 1: STRATEGY (Pinpoint Accuracy Map) ---
+tabs = st.tabs([
+    "🎯 Strategy",
+    "📊 Intel",
+    "📸 Logbook",
+    "🎒 Locker"
+])
+
+# =========================================================
+# TAB 1 - STRATEGY
+# =========================================================
+
 with tabs[0]:
-    st.title("Target Acquisition")
-    target = st.selectbox("Select Target Species:", [None] + ALL_SPECIES)
-    
+
+    st.title("🎯 Target Acquisition")
+
+    target = st.selectbox(
+        "Select Target Species:",
+        [None] + ALL_SPECIES
+    )
+
     if target:
+
         u_lat, u_lon = st.session_state['user_coords']
+
         matches = []
-        map_points = [{"lat": u_lat, "lon": u_lon, "name": "BASE", "color": [0, 150, 255, 255]}]
+
+        map_points = [{
+            "lat": u_lat,
+            "lon": u_lon,
+            "name": "YOUR POSITION",
+            "color": [0, 255, 180, 255]
+        }]
 
         for name, d in SITES.items():
-            if d[0] == target:
-                matches.append({"name": name, "dist": round(haversine(u_lat, u_lon, d[1], d[2]), 1), "tip": d[5], "lat": d[1], "lon": d[2]})
-                map_points.append({"lat": d[1], "lon": d[2], "name": name, "color": [255, 50, 50, 255]})
 
-        # THE MAP: Switch to 'outdoors' style to force Green/Blue visibility
-        st.pydeck_chart(pdk.Deck(
-            map_style='mapbox://styles/mapbox/outdoors-v12', # High-detail terrain style
-            initial_view_state=pdk.ViewState(latitude=u_lat, longitude=u_lon, zoom=12, pitch=0),
-            layers=[
-                pdk.Layer(
-                    'ScatterplotLayer', 
-                    data=pd.DataFrame(map_points), 
-                    get_position='[lon, lat]', 
-                    get_color='color', 
-                    get_radius=35, # Small, accurate pings
-                    pickable=True
-                )
-            ],
-            tooltip={"text": "{name}"}
-        ), use_container_width=True)
-        
+            if d[0] == target:
+
+                matches.append({
+                    "name": name,
+                    "dist": round(haversine(u_lat, u_lon, d[1], d[2]), 1),
+                    "tip": d[5],
+                    "lat": d[1],
+                    "lon": d[2]
+                })
+
+                map_points.append({
+                    "lat": d[1],
+                    "lon": d[2],
+                    "name": name,
+                    "color": species_colors.get(target, [255,255,255,255])
+                })
+
+        map_df = pd.DataFrame(map_points)
+
+        # PATHS
+
+        line_data = []
+
         for m in matches:
+
+            line_data.append({
+                "path": [
+                    [u_lon, u_lat],
+                    [m["lon"], m["lat"]]
+                ]
+            })
+
+        # VIEW
+
+        view_state = pdk.ViewState(
+            latitude=u_lat,
+            longitude=u_lon,
+            zoom=11,
+            pitch=50,
+            bearing=15
+        )
+
+        # LAYERS
+
+        line_layer = pdk.Layer(
+            "PathLayer",
+            data=line_data,
+            get_path="path",
+            get_color=[0, 255, 255],
+            width_scale=6,
+            width_min_pixels=2,
+            get_width=4,
+            opacity=0.45
+        )
+
+        scatter_layer = pdk.Layer(
+            "ScatterplotLayer",
+            data=map_df,
+            get_position='[lon, lat]',
+            get_fill_color='color',
+            get_radius=180,
+            opacity=0.85,
+            pickable=True,
+            stroked=True,
+            filled=True,
+            radius_min_pixels=8,
+            radius_max_pixels=25,
+            line_width_min_pixels=2
+        )
+
+        text_layer = pdk.Layer(
+            "TextLayer",
+            data=map_df,
+            get_position='[lon, lat]',
+            get_text='name',
+            get_size=14,
+            get_color=[255,255,255],
+            get_alignment_baseline="'bottom'"
+        )
+
+        # MAP
+
+        st.pydeck_chart(
+            pdk.Deck(
+                map_style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+                initial_view_state=view_state,
+                layers=[
+                    line_layer,
+                    scatter_layer,
+                    text_layer
+                ],
+                tooltip={
+                    "html": """
+                    <div style="
+                        background-color:#111827;
+                        padding:12px;
+                        border-radius:12px;
+                        color:white;
+                    ">
+                        <b>{name}</b>
+                    </div>
+                    """,
+                    "style": {
+                        "backgroundColor": "transparent",
+                        "color": "white"
+                    }
+                }
+            ),
+            use_container_width=True
+        )
+
+        # LOCATION CARDS
+
+        for m in matches:
+
             with st.expander(f"📍 {m['name']} ({m['dist']} mi)"):
-                st.write(f"**Field Notes:** {m['tip']}")
+
+                st.write(f"### Tactical Notes")
+                st.write(m['tip'])
+
                 if st.button("Lock Location", key=m['name']):
+
                     st.session_state['locked_spot'] = m['name']
                     st.rerun()
 
-# --- TAB 2: INTEL (Restored Tactical Analysis) ---
-with tabs[1]:
-    if not st.session_state['locked_spot']:
-        st.info("Awaiting location lock from Strategy tab.")
-    else:
-        spot = st.session_state['locked_spot']
-        lat, lon = SITES[spot][1], SITES[spot][2]
-        intel = get_weather_intel(lat, lon)
-        
-        st.header(f"Live Intelligence: {spot}")
-        
-        if intel:
-            # Row 1: Weather Stats
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown(f'<div class="metric-card"><div class="metric-label">Atmosphere</div><div class="metric-value">{intel["temp"]}°F | {intel["pres"]} inHg</div></div>', unsafe_allow_html=True)
-            with c2:
-                st.markdown(f'<div class="metric-card"><div class="metric-label">Wind Velocity</div><div class="metric-value">{intel["wind"]} mph</div></div>', unsafe_allow_html=True)
-            
-            # Row 2: Bite Score Logic
-            score = 75
-            if intel['pres'] < 30.0: score += 10
-            if 6 <= datetime.now().hour <= 9: score += 15
-            
-            st.markdown(f'<div class="metric-card" style="border-left: 5px solid #007bff;"><div class="metric-label">Probability of Strike</div><div class="metric-value" style="font-size: 2rem;">{min(score, 100)}%</div></div>', unsafe_allow_html=True)
+# =========================================================
+# TAB 2 - INTEL
+# =========================================================
 
-        st.divider()
+with tabs[1]:
+
+    if not st.session_state['locked_spot']:
+
+        st.info("Awaiting location lock from Strategy tab.")
+
+    else:
+
+        spot = st.session_state['locked_spot']
+
+        lat, lon = SITES[spot][1], SITES[spot][2]
+
+        intel = get_weather_intel(lat, lon)
+
+        st.title(f"📊 Live Intel — {spot}")
+
+        if intel:
+
+            c1, c2 = st.columns(2)
+
+            with c1:
+
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-label">Atmospheric Conditions</div>
+                    <div class="metric-value">
+                        {intel["temp"]}°F | {intel["pres"]} inHg
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with c2:
+
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-label">Wind Velocity</div>
+                    <div class="metric-value">
+                        {intel["wind"]} mph
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            score = 75
+
+            if intel['pres'] < 30.0:
+                score += 10
+
+            if 6 <= datetime.now().hour <= 9:
+                score += 15
+
+            st.markdown(f"""
+            <div class="metric-card"
+                 style="border-left: 6px solid #00ffff;">
+                <div class="metric-label">
+                    Probability of Strike
+                </div>
+                <div class="metric-value"
+                     style="font-size:2.5rem;">
+                    {min(score,100)}%
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
         st.subheader("🛡️ Tactical Recommendation")
+
         st.markdown("""
         <div class="metric-card">
-            <div class="metric-label">Primary Loadout</div>
-            <div class="metric-value" style="font-size: 1rem;">
-                <b>Rod:</b> 7'0" Medium-Heavy Fast Action<br>
+            <div class="metric-label">
+                Primary Loadout
+            </div>
+
+            <div class="metric-value"
+                 style="font-size:1rem; line-height:1.8;">
+                 
+                <b>Rod:</b> 7'0 Medium-Heavy Fast Action<br>
                 <b>Line:</b> 15lb Fluorocarbon Mainline<br>
-                <b>Objective:</b> Target wind-blown points and hard cover.
+                <b>Primary Objective:</b> Wind-blown points and hard cover.<br>
+                <b>Best Retrieve:</b> Slow roll with pauses near structure.
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-# --- TAB 3: LOGBOOK ---
+# =========================================================
+# TAB 3 - LOGBOOK
+# =========================================================
+
 with tabs[2]:
-    st.header("📸 Recon Logs")
+
+    st.title("📸 Recon Logs")
+
     with st.form("new_catch"):
-        f_spec = st.selectbox("Species:", ALL_SPECIES)
-        f_weight = st.number_input("Weight (lbs):", min_value=0.1)
-        if st.form_submit_button("Confirm Catch"):
-            st.session_state['my_catches'].append({"spec": f_spec, "w": f_weight, "date": datetime.now().strftime("%x")})
+
+        f_spec = st.selectbox(
+            "Species:",
+            ALL_SPECIES
+        )
+
+        f_weight = st.number_input(
+            "Weight (lbs):",
+            min_value=0.1
+        )
+
+        submitted = st.form_submit_button("Confirm Catch")
+
+        if submitted:
+
+            st.session_state['my_catches'].append({
+                "spec": f_spec,
+                "w": f_weight,
+                "date": datetime.now().strftime("%x")
+            })
+
             save_data()
+
             st.rerun()
-    
-    for i, c in enumerate(st.session_state['my_catches'][::-1]):
-        st.markdown(f"**{c['date']}** — {c['spec']} | {c['w']} lbs")
 
-# --- TAB 4: LOCKER (Restored Feature) ---
+    st.divider()
+
+    for c in st.session_state['my_catches'][::-1]:
+
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">{c['date']}</div>
+            <div class="metric-value">
+                {c['spec']} — {c['w']} lbs
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+# =========================================================
+# TAB 4 - LOCKER
+# =========================================================
+
 with tabs[3]:
-    st.header("🎒 Equipment Inventory")
-    if not st.session_state['lures_owned']:
-        st.write("Locker is currently empty. Add gear in the sidebar.")
-    else:
-        for lure in st.session_state['lures_owned']:
-            st.markdown(f'<div class="gear-item">🛡️ {lure}</div>', unsafe_allow_html=True)
 
+    st.title("🎒 Equipment Inventory")
+
+    if not st.session_state['lures_owned']:
+
+        st.write("Locker is currently empty. Add gear in the sidebar.")
+
+    else:
+
+        for lure in st.session_state['lures_owned']:
+
+            st.markdown(
+                f'<div class="gear-item">🛡️ {lure}</div>',
+                unsafe_allow_html=True
+            )
